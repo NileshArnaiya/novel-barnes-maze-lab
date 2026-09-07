@@ -1,0 +1,26 @@
+{
+  "_comment": "Measured once from the sample videos and reviewed by hand. Positions are normalised to frame width and height so they survive a change of fixture scale. Tolerances in eval.test.ts are deliberately wide: the question is whether detection lands on the right platform, not whether it reproduces a number exactly.",
+  "holeCount": 20,
+  "clips": {
+    "test50": {
+      "centerXNorm": 0.47,
+      "centerYNorm": 0.49,
+      "radiusNorm": 0.33,
+      "minRingScore": 60
+    },
+    "test51": {
+      "_note": "Platform sits noticeably left of frame centre, about 35 px off at 640 wide. This is the clip that exercises off-centre handling.",
+      "centerXNorm": 0.45,
+      "centerYNorm": 0.49,
+      "radiusNorm": 0.33,
+      "minRingScore": 100
+    },
+    "test53": {
+      "_note": "Recorded at 29.93 fps against test51's 15.0 fps. Same rig, same assay, different frame rate, which is why the tool never assumes one.",
+      "centerXNorm": 0.51,
+      "centerYNorm": 0.50,
+      "radiusNorm": 0.32,
+      "minRingScore": 150
+    }
+  }
+}

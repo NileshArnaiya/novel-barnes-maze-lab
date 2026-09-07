@@ -1,0 +1,302 @@
+/*
+ * Design tokens.
+ *
+ * Warm, low-glare, and quiet. The people using this are looking at it for hours
+ * while cross-checking video frames, so the surface stays out of the way and
+ * colour is spent only where it carries meaning: target hole, tracked path,
+ * flagged trial, human edit.
+ *
+ * No web fonts. A cold clone with no network still renders correctly, and there
+ * is no third-party request from a tool that promises nothing leaves the
+ * machine.
+ */
+:root {
+  --paper: #faf8f4;
+  --paper-raised: #ffffff;
+  --paper-sunk: #f2ede5;
+  --ink: #26221f;
+  --ink-soft: #5f574f;
+  --ink-faint: #918a80;
+  --rule: #e2dbd0;
+  --rule-strong: #cfc5b7;
+
+  --clay: #c05f3c;
+  --clay-soft: #f6e7e0;
+  --teal: #1d7d62;
+  --teal-soft: #e2f1eb;
+  --amber: #b0741a;
+  --amber-soft: #fbeedb;
+
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-display: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  --radius: 8px;
+  --gap: 16px;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { font-family: var(--font-display); font-weight: 500; margin: 0; }
+h1 { font-size: 22px; }
+h2 { font-size: 19px; }
+h3 { font-size: 16px; }
+
+/* Visible focus everywhere. Keyboard users must be able to see where they are. */
+:focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border-radius: var(--radius);
+  border: 1px solid var(--rule-strong);
+  background: var(--paper-raised);
+  color: var(--ink);
+  padding: 9px 16px;
+  transition: background 120ms ease;
+}
+button:hover:not(:disabled) { background: var(--paper-sunk); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* One primary action per screen. Clay is reserved for it. */
+button.primary {
+  background: var(--clay);
+  border-color: var(--clay);
+  color: #fff;
+  font-size: 16px;
+  padding: 12px 22px;
+}
+button.primary:hover:not(:disabled) { background: #a94f30; }
+
+button.ghost { border-color: transparent; background: transparent; }
+button.ghost:hover:not(:disabled) { background: var(--paper-sunk); }
+
+input[type='number'], input[type='text'], select {
+  font: inherit;
+  padding: 7px 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+
+input[type='range'] { width: 100%; accent-color: var(--clay); }
+
+.app { display: flex; flex-direction: column; height: 100%; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper-raised);
+}
+.topbar .spacer { flex: 1; }
+.topbar .subtitle { color: var(--ink-soft); font-size: 13px; }
+
+/* The step ribbon. Numbered because the workflow genuinely is a sequence. */
+.ribbon { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+.step-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+.step-chip .num {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 12px;
+  background: var(--paper-sunk);
+  color: var(--ink-soft);
+}
+.step-chip.current { border-color: var(--clay); background: var(--clay-soft); color: var(--ink); }
+.step-chip.current .num { background: var(--clay); color: #fff; }
+.step-chip.done .num { background: var(--teal); color: #fff; }
+
+.body { flex: 1; display: flex; min-height: 0; }
+
+.rail {
+  width: 232px;
+  border-right: 1px solid var(--rule);
+  background: var(--paper-raised);
+  overflow-y: auto;
+  padding: 14px;
+}
+.rail h3 { font-size: 13px; color: var(--ink-soft); font-family: var(--font-ui); margin-bottom: 10px; }
+
+.video-row {
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 9px 10px;
+  margin-bottom: 4px;
+  border-radius: var(--radius);
+  display: block;
+}
+.video-row:hover { background: var(--paper-sunk); }
+.video-row.active { background: var(--clay-soft); border-color: var(--clay); }
+.video-row .name { font-size: 14px; }
+.video-row .meta { font-size: 12px; color: var(--ink-soft); }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; padding: 2px 7px; border-radius: 4px;
+}
+.badge.ok { background: var(--teal-soft); color: #14513f; }
+.badge.warn { background: var(--amber-soft); color: #7a4f0d; }
+.badge.edited { background: var(--clay-soft); color: #8a4227; }
+
+.main { flex: 1; overflow-y: auto; padding: 26px 30px; min-width: 0; }
+.main.narrow { max-width: 760px; margin: 0 auto; }
+
+.panel {
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+
+.hint { color: var(--ink-soft); font-size: 14px; }
+
+.dropzone {
+  border: 2px dashed var(--rule-strong);
+  border-radius: 12px;
+  padding: 40px 24px;
+  text-align: center;
+  background: var(--paper-raised);
+}
+.dropzone.over { border-color: var(--clay); background: var(--clay-soft); }
+
+.stage { position: relative; background: var(--paper-sunk); border-radius: 12px; overflow: hidden; }
+.stage canvas { display: block; width: 100%; height: auto; }
+
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.metric { background: var(--paper-sunk); border-radius: var(--radius); padding: 12px 14px; }
+.metric .label { font-size: 12px; color: var(--ink-soft); }
+.metric .value { font-size: 22px; font-family: var(--font-mono); }
+.metric .value.null { color: var(--ink-faint); font-size: 15px; }
+.metric button.jump {
+  font-size: 11px; padding: 2px 8px; margin-top: 6px;
+  border-color: var(--rule); background: transparent;
+}
+
+.param { margin-bottom: 16px; }
+.param .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.param .val { font-family: var(--font-mono); font-size: 13px; color: var(--ink-soft); }
+.param .help { font-size: 12px; color: var(--ink-soft); margin-top: 4px; }
+
+.timeline { width: 100%; height: 58px; display: block; cursor: pointer; border-radius: var(--radius); }
+
+.reason { margin: 0; padding-left: 18px; }
+.reason li { font-size: 14px; color: var(--ink-soft); margin-bottom: 5px; }
+
+table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.data th, table.data td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--rule); }
+table.data th { font-weight: 500; color: var(--ink-soft); font-size: 12px; }
+table.data td.num { font-family: var(--font-mono); }
+
+.notice {
+  border-left: 3px solid var(--amber);
+  background: var(--amber-soft);
+  padding: 10px 14px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+.notice.info { border-left-color: var(--teal); background: var(--teal-soft); }
+
+.walkthrough-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(38, 34, 31, 0.42);
+  display: grid; place-items: center;
+  z-index: 10;
+  padding: 20px;
+}
+.walkthrough {
+  background: var(--paper-raised);
+  border-radius: 14px;
+  padding: 26px 28px;
+  max-width: 520px;
+}
+.walkthrough .dots { display: flex; gap: 6px; margin: 18px 0; }
+.walkthrough .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--rule-strong); }
+.walkthrough .dot.on { background: var(--clay); }
+
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.grow { flex: 1; }
+.stack { display: flex; flex-direction: column; gap: 6px; }
+
+/* At 200% browser zoom the side rail costs more than it gives, so it folds. */
+@media (max-width: 900px) {
+  .body { flex-direction: column; }
+  .rail { width: 100%; border-right: none; border-bottom: 1px solid var(--rule); max-height: 180px; }
+  .main { padding: 18px; }
+}
+
+/* The help affordance. Fixed bottom-right, out of the way of the workspace but
+   always reachable, and reachable by keyboard with the ? key as well. */
+.help-fab {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--rule-strong);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: 19px;
+  font-family: var(--font-display);
+  display: grid;
+  place-items: center;
+  z-index: 20;
+  padding: 0;
+}
+.help-fab:hover { background: var(--clay-soft); border-color: var(--clay); }
+
+/* 44px minimum touch target, which is also a comfortable click target at 200%
+   zoom on a trackpad. */
+button { min-height: 36px; }
+button.primary { min-height: 44px; }
+
+/* Skip link, so a keyboard user does not tab through the whole trial list to
+   reach the work. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 8px;
+  z-index: 40;
+  background: var(--paper-raised);
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--clay);
+}
+.skip-link:focus { left: 8px; }
