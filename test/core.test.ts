@@ -349,6 +349,7 @@ describe('explainer payload', () => {
       params: DEFAULT_PARAMS,
       trialType: 'acquisition',
       holeCount: 20,
+      durationS: 60,
     });
 
     const serialised = JSON.stringify(payload);
@@ -360,11 +361,38 @@ describe('explainer payload', () => {
     expect(payload).not.toHaveProperty('track');
     expect(payload).not.toHaveProperty('body');
     expect(payload).not.toHaveProperty('videoId');
+    expect(payload).not.toHaveProperty('gaps');
     expect(Object.keys(payload)).not.toContain('animalId');
     expect(Object.keys(payload)).not.toContain('fileName');
+
+    expect(payload.duration_s).toBe(60);
+    expect(typeof payload.not_visible_s).toBe('number');
 
     // And it is small: a payload that grew to thousands of characters would
     // mean something structural slipped in.
     expect(serialised.length).toBeLessThan(2500);
+  });
+
+  it('counts lost frames as not visible and leaves in-hole time out of that number', () => {
+    // 30 lost frames at 30 fps is 1.0 s. In-hole frames are known, not lost.
+    const track = concat(
+      straightLine({ x: 500, y: 500 }, target.center, 30),
+      absent(30, 30, 'lost'),
+      absent(30, 60, 'in-target-hole'),
+    );
+    const video = makeVideo({ durationS: 3 });
+    const { summary } = analyze(video, track, map, DEFAULT_PARAMS);
+    const payload = buildPayload({
+      summary,
+      quality: assessQuality(track, FPS),
+      params: DEFAULT_PARAMS,
+      trialType: 'acquisition',
+      holeCount: 20,
+      durationS: 3,
+    });
+
+    expect(payload.not_visible_s).toBe(1);
+    expect(payload.duration_s).toBe(3);
+    expect(JSON.stringify(payload)).not.toContain('"x":');
   });
 });

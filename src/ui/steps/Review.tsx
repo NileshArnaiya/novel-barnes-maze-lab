@@ -6,7 +6,6 @@ import { useStore } from '../../state/store';
 import { getFile } from '../../state/fileStore';
 import { ArenaCanvas } from '../components/ArenaCanvas';
 import { useVideoFrameSource } from '../components/VideoFrameSource';
-import { Explainer } from '../components/Explainer';
 import { FigurePanel } from '../components/FigurePanel';
 import { ParamsPanel } from '../components/ParamsPanel';
 import { useKeyboardShortcuts } from '../components/Shortcuts';
@@ -368,10 +367,6 @@ export function Review({ video }: { video: VideoRecord }) {
           </div>
 
           <FigurePanel video={video} />
-
-          {quality ? (
-            <Explainer video={video} quality={quality} params={project.params} />
-          ) : null}
 
           <div className="panel">
             <ParamsPanel params={project.params} onChange={setParams} />

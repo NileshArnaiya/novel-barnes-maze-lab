@@ -1,0 +1,18 @@
+{
+  "name": "barnes-maze-skills",
+  "owner": {
+    "name": "Barnes maze scorer"
+  },
+  "plugins": [
+    {
+      "name": "analyzing-barnes-maze",
+      "source": "./analyzing-barnes-maze",
+      "description": "Working knowledge of Barnes maze behavioural data: what each measure means, how the scorer's exports are laid out, and the analysis mistakes this assay invites.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Barnes maze scorer"
+      },
+      "keywords": ["neuroscience", "behaviour", "barnes-maze", "sleap", "deeplabcut"]
+    }
+  ]
+}
