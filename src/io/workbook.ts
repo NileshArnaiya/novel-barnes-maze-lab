@@ -2,29 +2,8 @@ import { MOVEMENT_FLOOR_CM_S } from '../core/measures';
 import type { Project, TrialSummary, VideoRecord } from '../core/types';
 
 /**
- * The analysis-ready workbook.
- *
- * A single flat CSV is fine for a script and wrong for a dataset someone else
- * has to understand. What a neuroscientist actually needs to hand to a
- * collaborator, a reviewer, or themselves in two years is a workbook where the
- * measurements, the subjects, the events, the summary statistics and the
- * definitions each have their own sheet.
- *
- * The sheet that does the most work is the data dictionary. Software extracting
- * numbers from video does not make those numbers understandable. What makes
- * them understandable is a row saying exactly what `primary_errors` counted,
- * in what units, under which threshold, and what the experimental unit was.
- * Without it, the reader has to guess, and guessing is how a measure gets
- * misinterpreted in a paper.
- *
- * Sheet layout:
- *   1. Measurements     one row per trial, the analysis unit
- *   2. Subjects         one row per animal
- *   3. Events           one row per scored behavioural event
- *   4. Summary          group means, SD, SEM, n
- *   5. Data dictionary  every column defined, with units
- *   6. Methods          a paste-able methods paragraph
- *   7. Parameters       every threshold and the tool version
+ * Excel workbook. Seven sheets:
+ *   measurements, subjects, events, group summary, data dictionary, methods, parameters.
  */
 
 const TOOL = 'Barnes maze scorer';
@@ -35,7 +14,7 @@ function scoredTrials(project: Project): Scored[] {
   return project.videos.filter((v): v is Scored => v.summary !== null);
 }
 
-/** Sheet 1: one row per trial. This is the experimental unit for statistics. */
+/** Sheet 1: one row per trial. */
 function measurementsSheet(project: Project) {
   return scoredTrials(project).map((v) => {
     const s = v.summary;
@@ -70,11 +49,7 @@ function measurementsSheet(project: Project) {
 }
 
 /**
- * Sheet 2: one row per animal.
- *
- * Kept separate from the measurements because subject attributes belong to the
- * animal, not to each of its trials. Repeating them on every row invites them
- * to drift apart, which is how one animal ends up in two groups.
+ * Sheet 2: one row per animal. Sex / genotype / treatment are blank for the user to fill.
  */
 function subjectsSheet(project: Project) {
   const byAnimal = new Map<string, Scored[]>();
@@ -87,9 +62,7 @@ function subjectsSheet(project: Project) {
   return [...byAnimal.entries()].map(([animalId, trials]) => ({
     animal_id: animalId,
     cohort: trials[0]?.summary.cohort ?? '',
-    // Sex, genotype and treatment are not derivable from a video. Empty
-    // columns are provided so the user fills them in one place rather than
-    // pasting them onto every measurement row.
+    // Not in the video. Fill these here, not on every trial row.
     sex: '',
     genotype: '',
     treatment: '',
@@ -98,7 +71,7 @@ function subjectsSheet(project: Project) {
   }));
 }
 
-/** Sheet 3: one row per scored event, with the frames that produced it. */
+/** Sheet 3: one row per event, with frames. */
 function eventsSheet(project: Project) {
   const rows: Record<string, unknown>[] = [];
   for (const v of project.videos) {
@@ -124,16 +97,7 @@ function eventsSheet(project: Project) {
 }
 
 /**
- * Sheet 4: group summary statistics.
- *
- * SEM as well as SD, because SEM is what goes on the error bars in almost every
- * behavioural figure and computing it by hand from SD and n is a needless step
- * where mistakes happen.
- *
- * Censored trials are counted and reported separately rather than folded into
- * the mean. An animal that never escaped is not a slow animal, and averaging a
- * timeout value in without saying so biases the group toward the animals that
- * learned.
+ * Sheet 4: group mean, SD, SEM, n. Censored trials counted separately, not averaged in.
  */
 function summarySheet(project: Project) {
   const groups = new Map<string, Scored[]>();
@@ -148,8 +112,7 @@ function summarySheet(project: Project) {
     const n = values.length;
     if (n === 0) return { mean: '', sd: '', sem: '', n: 0 };
     const mean = values.reduce((a, b) => a + b, 0) / n;
-    // Sample standard deviation. n-1 because these are a sample of animals,
-    // not the whole population.
+    // Sample SD (n-1).
     const variance = n > 1 ? values.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1) : 0;
     const sd = Math.sqrt(variance);
     return {
@@ -207,13 +170,7 @@ function summarySheet(project: Project) {
   return rows;
 }
 
-/**
- * Sheet 5: the data dictionary.
- *
- * The most important sheet in the workbook and the one nobody ships. It is what
- * lets a person who did not run the experiment understand the numbers without
- * asking the person who did.
- */
+/** Sheet 5: what each column means. */
 function dictionarySheet(project: Project) {
   const p = project.params;
   return [
@@ -335,11 +292,7 @@ function dictionarySheet(project: Project) {
 }
 
 /**
- * Sheet 6: a methods paragraph.
- *
- * Every scientist using this tool will write the same paragraph by hand, from
- * memory, and some of them will get a threshold wrong. Generating it from the
- * parameters that were actually used removes both the work and the error.
+ * Sheet 6: methods paragraph built from the settings actually used.
  */
 function methodsSheet(project: Project) {
   const p = project.params;
@@ -366,7 +319,7 @@ function methodsSheet(project: Project) {
   return text.map((paragraph, i) => ({ section: i + 1, text: paragraph }));
 }
 
-/** Sheet 7: every parameter, for reproducibility. */
+/** Sheet 7: parameters. */
 function parametersSheet(project: Project) {
   const rows: Record<string, unknown>[] = [
     { parameter: 'tool', value: TOOL },
@@ -410,7 +363,7 @@ export async function downloadWorkbook(project: Project, filename: string): Prom
   XLSX.writeFile(wb, filename);
 }
 
-/** The methods paragraph as plain text, for pasting straight into a draft. */
+/** Methods paragraph as plain text. */
 export function methodsText(project: Project): string {
   return methodsSheet(project)
     .map((r) => r.text)

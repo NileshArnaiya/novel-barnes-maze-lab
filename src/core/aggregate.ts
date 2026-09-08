@@ -1,21 +1,10 @@
 import type { Project, StrategyLabel, TrialSummary } from './types';
 
 /**
- * Cohort-level aggregation for the learning curve.
+ * One point per cohort per day for the learning curve.
  *
- * The unit of a Barnes maze experiment is the animal across days, not the
- * single trial, and the figure everyone draws is latency or errors falling over
- * training days. This turns the per-trial summaries into that curve: one point
- * per group per day, with a mean and the standard error that goes on the error
- * bar.
- *
- * SEM, not SD, because SEM is what behavioural figures put on their error bars,
- * and computing it by hand from SD and n is a step where mistakes happen.
- *
- * Censored trials, where the animal never reached the target, are counted and
- * excluded from the latency mean rather than folded in, because averaging a
- * timeout value biases the curve toward the animals that learned. The count is
- * returned so a caller can report it.
+ * SEM on the error bars. Trials that never reached the target are counted
+ * in nCensored and left out of the latency mean, not averaged in as a timeout.
  */
 
 export interface CurvePoint {
@@ -40,7 +29,6 @@ function value(s: TrialSummary, measure: CurveMeasure): number | null {
 }
 
 export function learningCurve(project: Project, measure: CurveMeasure): CurvePoint[] {
-  // Group by cohort and day.
   const groups = new Map<string, TrialSummary[]>();
   for (const v of project.videos) {
     if (!v.summary || v.day === null) continue;
@@ -74,14 +62,14 @@ export function learningCurve(project: Project, measure: CurveMeasure): CurvePoi
   return points.sort((a, b) => a.cohort.localeCompare(b.cohort) || a.day - b.day);
 }
 
-/** Distinct cohorts present, in a stable order, for colouring the curve. */
+/** Cohort names, sorted, for colouring the curve. */
 export function cohorts(project: Project): string[] {
   const set = new Set<string>();
   for (const v of project.videos) if (v.summary) set.add(v.summary.cohort);
   return [...set].sort();
 }
 
-/** Strategy counts per day, for a stacked strategy-over-training view. */
+/** Strategy counts per day for one cohort. */
 export function strategyByDay(
   project: Project,
   cohort: string,
@@ -97,4 +85,48 @@ export function strategyByDay(
   return [...byDay.entries()]
     .map(([day, counts]) => ({ day, counts }))
     .sort((a, b) => a.day - b.day);
+}
+
+/** One animal, one day. Faint lines under the cohort mean. */
+export interface AnimalDayPoint {
+  animalId: string;
+  cohort: string;
+  day: number;
+  value: number;
+}
+
+export function animalDayValues(project: Project, measure: CurveMeasure): AnimalDayPoint[] {
+  const out: AnimalDayPoint[] = [];
+  for (const v of project.videos) {
+    if (!v.summary || v.day === null) continue;
+    const val = value(v.summary, measure);
+    if (val === null) continue;
+    out.push({
+      animalId: v.summary.animalId,
+      cohort: v.summary.cohort,
+      day: v.day,
+      value: val,
+    });
+  }
+  return out;
+}
+
+export const CURVE_MEASURES: { key: CurveMeasure; label: string; unit: string }[] = [
+  { key: 'primaryLatencyS', label: 'Primary latency', unit: 's' },
+  { key: 'totalLatencyS', label: 'Total latency', unit: 's' },
+  { key: 'primaryErrors', label: 'Primary errors', unit: '' },
+  { key: 'totalErrors', label: 'Total errors', unit: '' },
+  { key: 'pathLengthCm', label: 'Path length', unit: 'cm' },
+];
+
+/** True if there are at least two days or two cohorts to plot. */
+export function hasCohortSpan(project: Project): boolean {
+  const days = new Set<number>();
+  const groups = new Set<string>();
+  for (const v of project.videos) {
+    if (!v.summary) continue;
+    groups.add(v.summary.cohort);
+    if (v.day !== null) days.add(v.day);
+  }
+  return days.size >= 2 || groups.size >= 2;
 }

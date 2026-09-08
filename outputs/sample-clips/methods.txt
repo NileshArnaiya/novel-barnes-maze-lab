@@ -1,0 +1,13 @@
+Behaviour was recorded at 29.929755043227665 frames per second on a 92 cm diameter Barnes maze platform with 20 holes. Videos were scored using Barnes maze scorer v0.1.0.
+
+Animal position was tracked and hole investigations were defined as the nose remaining within 3 cm of a hole centre for at least 0.2 s, with visits to the same hole within 1 s merged into a single investigation.
+
+Primary latency was the time to first come within 5 cm of the target hole. Escape was scored as a disappearance at the target hole persisting for at least 8 frames, corroborated by the last observed position. Errors were counted as distinct non-target holes investigated.
+
+Frames in which the animal could not be localised and for which there was no evidence of hole entry were excluded rather than interpolated; the proportion of successfully localised frames is reported per trial. Trajectories were median filtered over 5 frames.
+
+Search strategy was classified as spatial, serial or random using path directness, the sequence of hole visits and target quadrant occupancy, following the feature set of Illouz et al. (2016). Classifications were reviewed and could be overridden by an experimenter; the source of each label is recorded in the dataset.
+
+A total of 3 trials from 3 animals were analysed.
+
+Check this paragraph against your protocol before use. It reports the settings this analysis used, not a substitute for describing your own experiment.

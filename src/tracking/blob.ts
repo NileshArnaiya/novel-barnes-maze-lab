@@ -1,16 +1,8 @@
 import type { Point } from '../core/types';
 
 /**
- * Classical blob tracking. No model weights, no GPU, no WASM codec.
- *
- * This is a deliberate choice rather than a shortcut. A segmentation network
- * would be more robust on hard footage, but it would also be a black box that a
- * user cannot audit and cannot fix when it fails. Every step below is something
- * a scientist can be walked through in two minutes: subtract the empty arena,
- * threshold what changed, take the biggest connected region, find its centre.
- *
- * The tradeoff is documented in KNOWN_LIMITATIONS.md. Where this approach
- * fails, it fails visibly and says so, which is the property that matters most.
+ * Blob tracker: subtract empty arena, threshold, largest connected region.
+ * Fails visibly. See KNOWN_LIMITATIONS.md for when it does not work.
  */
 
 export interface Frame {
@@ -33,12 +25,7 @@ export function toGray(rgba: Uint8ClampedArray, width: number, height: number): 
 }
 
 /**
- * Build a background model by taking the per-pixel median of sampled frames.
- *
- * Median rather than mean, because the animal is a moving outlier. With enough
- * samples the animal is never at the same pixel in most of them, so the median
- * of each pixel is the empty arena. A mean would smear a faint ghost of the
- * animal's path into the background and weaken every subsequent detection.
+ * Per-pixel median of sampled frames. Mean would smear the animal into the empty arena.
  */
 export function buildBackground(samples: readonly Frame[]): Frame {
   const first = samples[0];
@@ -51,8 +38,7 @@ export function buildBackground(samples: readonly Frame[]): Frame {
 
   for (let px = 0; px < out.length; px++) {
     for (let s = 0; s < n; s++) scratch[s] = samples[s]?.gray[px] ?? 0;
-    // Insertion sort: n is small (typically 15 to 30 samples) and this avoids
-    // allocating a new array per pixel, which matters over ~300k pixels.
+    // n is ~25; insertion sort avoids a new array per pixel.
     for (let i = 1; i < n; i++) {
       const v = scratch[i] ?? 0;
       let j = i - 1;
@@ -72,10 +58,7 @@ export interface Blob {
   centroid: Point;
   /** Area in pixels. Used to reject noise and to detect merged blobs. */
   area: number;
-  /**
-   * Principal axis angle in radians, from image moments. This is what lets us
-   * separate nose from tail without a pose model.
-   */
+  /** Principal axis, radians. Nose vs tail without a pose model. */
   orientation: number;
   /** Extreme point along the principal axis, our nose estimate. */
   extremeA: Point;
@@ -83,25 +66,7 @@ export interface Blob {
 }
 
 /**
- * Find the animal in one frame.
- *
- * `mask` restricts the search to the platform, which removes the single largest
- * source of false positives: the experimenter's hand, the escape box, and
- * anything moving at the edge of the room.
- */
-/**
- * Reusable scratch buffers.
- *
- * detectBlob runs once per frame. At 640 by 480 that is a 300 KB foreground
- * mask plus a 1.2 MB label array, and a three-minute trial at 30 fps calls it
- * over five thousand times. Allocating fresh arrays each call hands the garbage
- * collector roughly eight gigabytes of short-lived typed arrays to deal with
- * over one video, which is enough to push a browser tab into memory pressure
- * and, on a machine already loaded with other applications, out of memory
- * entirely.
- *
- * Reusing the buffers makes the per-frame allocation constant. They are keyed
- * by size so a change of video resolution reallocates once rather than never.
+ * Scratch buffers reused every frame so a long video does not allocate gigabytes.
  */
 const scratch = {
   size: 0,
@@ -123,11 +88,7 @@ function ensureScratch(size: number) {
 }
 
 /**
- * Find the animal in one frame.
- *
- * `mask` restricts the search to the platform, which removes the single largest
- * source of false positives: the experimenter's hand, the escape box, and
- * anything moving at the edge of the room.
+ * Largest blob inside `mask` (the platform). Hands and doors stay out.
  */
 export function detectBlob(
   frame: Frame,
@@ -144,10 +105,7 @@ export function detectBlob(
   fg.fill(0);
   labels.fill(-1);
 
-  // Step 1: absolute difference from the background, thresholded.
-  // The animal is darker than the platform in typical footage, but we use the
-  // absolute difference so the tool also works with a light animal on a dark
-  // platform without a separate code path.
+  // Difference from background. Absolute, so light-on-dark also works.
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = y * width + x;
@@ -157,9 +115,7 @@ export function detectBlob(
     }
   }
 
-  // Step 2: largest connected component, found with an iterative flood fill.
-  // Iterative rather than recursive because a large blob would blow the call
-  // stack on a real frame.
+  // Largest connected component. Iterative so a big blob does not blow the stack.
   let bestCount = 0;
 
   for (let seed = 0; seed < size; seed++) {
@@ -176,7 +132,7 @@ export function detectBlob(
       const x = i % width;
       const y = (i - x) / width;
 
-      // 4-connectivity. 8 would merge the animal with nearby noise more often.
+      // 4-connected. 8-connected merges nearby noise more often.
       if (x > 0 && fg[i - 1] === 1 && labels[i - 1] === -1) {
         labels[i - 1] = seed;
         stack[sp++] = i - 1;
@@ -203,8 +159,7 @@ export function detectBlob(
 
   if (bestCount < minArea) return null;
 
-  // Step 3: image moments. The first moments give the centroid; the second
-  // central moments give the orientation of the principal axis.
+  // Moments: centroid, then principal-axis orientation.
   let sx = 0;
   let sy = 0;
   for (let k = 0; k < bestCount; k++) {
@@ -235,9 +190,7 @@ export function detectBlob(
 
   const orientation = 0.5 * Math.atan2(2 * mu11, mu20 - mu02);
 
-  // Step 4: the two extreme points along that axis. One is the nose, the other
-  // the tail base. Which is which is resolved in occlusion.ts using the
-  // direction of travel, because a still animal gives no cue at all.
+  // Ends of the axis. Which is the nose is decided later from travel direction.
   const ux = Math.cos(orientation);
   const uy = Math.sin(orientation);
   let minProj = Infinity;

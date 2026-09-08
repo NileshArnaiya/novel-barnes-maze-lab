@@ -8,32 +8,18 @@ import type {
 } from './types';
 
 /**
- * The measures a scientist reports. Every function here is pure and takes the
- * events and track it needs, so each one can be tested against a synthetic
- * trajectory with a known answer.
- *
- * Definitions and their sources are in docs/measures.md. Where the literature
- * disagrees the disagreement is documented rather than resolved silently.
+ * Trial measures. Pure functions; answers live in docs/measures.md.
  */
 
 /**
- * Time to first reach the target hole.
- *
- * Null means "never reached", which is different from zero and different from
- * the trial timeout. Callers decide how to present it; the export writes an
- * empty cell plus an explicit `reached_target` boolean column so a downstream
- * analysis cannot mistake a censored value for a fast one.
+ * Time to first reach the target. Null means never reached, not zero.
  */
 export function primaryLatency(events: readonly MazeEvent[]): number | null {
   const reached = events.find((e) => e.kind === 'reached-target');
   return reached ? reached.startT : null;
 }
 
-/**
- * Time to enter the escape box.
- *
- * Undefined on probe trials by construction: there is no escape box to enter.
- */
+/** Time to enter the escape box. Always null on probe trials. */
 export function totalLatency(
   events: readonly MazeEvent[],
   trialType: TrialType,
@@ -44,12 +30,8 @@ export function totalLatency(
 }
 
 /**
- * Errors before the animal first reaches the target.
- *
- * Counted as distinct non-target holes investigated, not as total
- * investigations: returning to the same wrong hole twice is one error under the
- * most common convention. `docs/measures.md` records that some papers count
- * every visit instead, and the export labels which convention was used.
+ * Distinct non-target holes visited before first reach.
+ * Same hole twice still counts as one. Some papers count every visit instead.
  */
 export function primaryErrors(events: readonly MazeEvent[]): number {
   const reached = events.find((e) => e.kind === 'reached-target');
@@ -77,34 +59,14 @@ export function totalErrors(events: readonly MazeEvent[]): number {
 }
 
 /**
- * Minimum frame-to-frame displacement counted as real movement.
- *
- * A stationary animal still produces a centroid that jitters by a pixel or two
- * every frame, from sensor noise and from the blob's edge flickering. Summing
- * that raw gives a mouse sitting perfectly still a path length of metres, and
- * at 30 frames per second a few seconds of grooming can out-weigh a real
- * traverse of the platform.
- *
- * Every serious tracker has this filter; EthoVision calls it minimum distance
- * moved. Without it, path length measures tracking noise as much as behaviour,
- * and any measure derived from it, path directness in particular, is wrong in
- * a way that looks plausible.
- *
- * Set in centimetres so it means the same thing on every rig regardless of
- * camera height.
+ * Ignore centroid jitter below this (cm). Without it, a sitting animal
+ * accumulates metres of fake path.
  */
 export const MIN_DISPLACEMENT_CM = 0.4;
 
 /**
- * Distance travelled, in centimetres.
- *
- * Only consecutive pairs of frames where the animal was actually visible
- * contribute. A gap is skipped, not bridged: bridging a five-second occlusion
- * with a straight line adds distance the animal may never have travelled, and
- * that error compounds across a cohort. Skipping instead under-reports, which
- * is the safer direction and is disclosed via `trackedFraction`.
- *
- * Displacements below MIN_DISPLACEMENT_CM are treated as noise, not movement.
+ * Distance travelled, cm. Only consecutive tracked frames. Gaps are skipped,
+ * not bridged. Tiny steps below MIN_DISPLACEMENT_CM are noise.
  */
 export function pathLengthCm(
   track: readonly TrackPoint[],
@@ -125,11 +87,8 @@ export function pathLengthCm(
 }
 
 /**
- * Mean speed while moving, cm/s.
- *
- * Averaging over the whole trial conflates "moved slowly" with "sat still for a
- * long time", which are different behaviours. We average only over frames above
- * a small movement floor, and report the floor in the export.
+ * Mean speed while moving, cm/s. Frames below MOVEMENT_FLOOR_CM_S are ignored
+ * so sitting still is not averaged in as "slow".
  */
 export const MOVEMENT_FLOOR_CM_S = 1.0;
 
@@ -156,12 +115,8 @@ export function meanSpeedCmS(
 }
 
 /**
- * Seconds spent in the quadrant containing the target hole.
- *
- * The standard probe-trial readout: an animal that remembers the location
- * concentrates its search there. Frames where the animal is not visible are
- * excluded from the numerator, so a badly tracked trial reports less quadrant
- * time rather than a fabricated amount.
+ * Seconds in the target quadrant. Untracked frames add nothing, so a bad
+ * track reports less time rather than a made-up amount.
  */
 export function targetQuadrantTimeS(
   track: readonly TrackPoint[],
@@ -178,13 +133,7 @@ export function targetQuadrantTimeS(
   return seconds;
 }
 
-/**
- * Fraction of visible time spent hugging the platform edge.
- *
- * Thigmotaxis is an anxiety readout, not a memory one, but it looks like poor
- * performance in latency and error counts. Surfacing it separately stops an
- * anxious animal being scored as a forgetful one.
- */
+/** Fraction of visible time spent near the rim. Anxiety, not memory. */
 export function thigmotaxisFraction(
   track: readonly TrackPoint[],
   map: MazeMap,
@@ -202,11 +151,7 @@ export function thigmotaxisFraction(
 }
 
 /**
- * Fraction of frames where the animal's position was genuinely observed.
- *
- * Frames inside a hole count as observed: we know exactly where the animal is,
- * it is simply not visible. Only `lost` counts against the score. This is the
- * number that tells a user whether to trust everything above it.
+ * Fraction of frames that are not `lost`. Time in a hole still counts as known.
  */
 export function trackedFraction(track: readonly TrackPoint[]): number {
   if (track.length === 0) return 0;
@@ -221,13 +166,7 @@ export function humanEditedFrames(track: readonly TrackPoint[]): number {
   return n;
 }
 
-/**
- * Latency to report when the animal never escaped.
- *
- * Two conventions exist: assign the trial timeout, or exclude the trial. We
- * assign the timeout and mark it, because silently dropping trials biases group
- * means toward the animals that learned.
- */
+/** If never escaped, use the timeout and mark it censored. */
 export function censoredLatency(
   latency: number | null,
   params: ScoringParams,

@@ -3,32 +3,33 @@ import {
   downloadPng,
   downloadSvg,
   heatmapSvg,
+  holeVisitRasterSvg,
   quadrantOccupancy,
+  timeColoredPathSvg,
   trajectorySvg,
 } from '../../io/figures';
 import type { VideoRecord } from '../../core/types';
 
+type FigureView = 'trajectory' | 'time' | 'heatmap' | 'raster';
+
 /**
- * Publication figures for one trial: the trajectory and the occupancy heatmap,
- * previewed inline and exportable as vector SVG or 300 dpi PNG.
- *
- * These are the two figures a Barnes maze paper is built around, so putting
- * them one click from the numbers, rather than making the user rebuild them in
- * another tool, is most of what turns a spreadsheet into a result.
+ * Per-trial figures: trajectory, time-coloured path, heatmap, hole visits.
  */
 export function FigurePanel({ video }: { video: VideoRecord }) {
-  const [view, setView] = useState<'trajectory' | 'heatmap'>('trajectory');
+  const [view, setView] = useState<FigureView>('trajectory');
   const [grayscale, setGrayscale] = useState(false);
 
   const track = video.track;
   const map = video.map;
+  const events = video.events ?? [];
 
   const svg = useMemo(() => {
     if (!track || !map) return '';
-    return view === 'trajectory'
-      ? trajectorySvg(track, map, { grayscale, size: 480 })
-      : heatmapSvg(track, map, { grayscale, size: 480 });
-  }, [track, map, view, grayscale]);
+    if (view === 'trajectory') return trajectorySvg(track, map, { grayscale, size: 480 });
+    if (view === 'time') return timeColoredPathSvg(track, map, { grayscale, size: 480 });
+    if (view === 'heatmap') return heatmapSvg(track, map, { grayscale, size: 480 });
+    return holeVisitRasterSvg(events, map, video.durationS, { grayscale, width: 560 });
+  }, [track, map, events, view, grayscale, video.durationS]);
 
   const quadrants = useMemo(
     () => (track && map ? quadrantOccupancy(track, map) : null),
@@ -38,28 +39,38 @@ export function FigurePanel({ video }: { video: VideoRecord }) {
   if (!track || !map) return null;
 
   const base = `${video.animalId}-${view}`;
+  const tabs: { id: FigureView; label: string }[] = [
+    { id: 'trajectory', label: 'Trajectory' },
+    { id: 'time', label: 'Time-colored' },
+    { id: 'heatmap', label: 'Occupancy heatmap' },
+    { id: 'raster', label: 'Hole visits' },
+  ];
+
+  const caption =
+    view === 'heatmap' && quadrants
+      ? `Target quadrant occupancy: ${(quadrants[0]! * 100).toFixed(0)}%. Chance is 25%. Time is weighted by how long the animal spent in each spot, so a pause reads as a hot spot and a fast pass does not.`
+      : view === 'time'
+        ? 'Colour runs from start (purple) to end (yellow). Breaks in the line are stretches where the animal was not tracked; nothing is drawn across them.'
+        : view === 'raster'
+          ? 'Time runs left to right, holes top to bottom. Bars are investigations. The triangle is first reach of the target; the filled circle is the escape. The target row is shaded.'
+          : 'Grey marks the start, coloured the end. Breaks in the line are stretches where the animal was not tracked; nothing is drawn across them.';
 
   return (
     <div className="panel">
       <h3>Figures</h3>
       <div className="row" style={{ margin: '10px 0' }}>
-        <div className="row" role="tablist" aria-label="Figure type" style={{ gap: 4 }}>
-          <button
-            role="tab"
-            aria-selected={view === 'trajectory'}
-            className={view === 'trajectory' ? 'primary' : ''}
-            onClick={() => setView('trajectory')}
-          >
-            Trajectory
-          </button>
-          <button
-            role="tab"
-            aria-selected={view === 'heatmap'}
-            className={view === 'heatmap' ? 'primary' : ''}
-            onClick={() => setView('heatmap')}
-          >
-            Occupancy heatmap
-          </button>
+        <div className="row" role="tablist" aria-label="Figure type" style={{ gap: 4, flexWrap: 'wrap' }}>
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              role="tab"
+              aria-selected={view === tab.id}
+              className={view === tab.id ? 'primary' : ''}
+              onClick={() => setView(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
         <span className="grow" />
         <label className="row" style={{ gap: 6, fontSize: 13 }}>
@@ -70,23 +81,12 @@ export function FigurePanel({ video }: { video: VideoRecord }) {
 
       <div
         style={{ border: '1px solid var(--rule)', borderRadius: 8, overflow: 'hidden' }}
-        // The generated SVG is our own output, built from numeric coordinates,
-        // not user-supplied markup, so rendering it directly is safe here.
         dangerouslySetInnerHTML={{ __html: svg }}
       />
 
-      {view === 'heatmap' && quadrants ? (
-        <p className="hint" style={{ marginTop: 8 }}>
-          Target quadrant occupancy: {(quadrants[0]! * 100).toFixed(0)}%. Chance is 25%. Time is
-          weighted by how long the animal spent in each spot, so a pause reads as a hot spot and
-          a fast pass does not.
-        </p>
-      ) : (
-        <p className="hint" style={{ marginTop: 8 }}>
-          Grey marks the start, coloured the end. Breaks in the line are stretches where the
-          animal was not tracked; nothing is drawn across them.
-        </p>
-      )}
+      <p className="hint" style={{ marginTop: 8 }}>
+        {caption}
+      </p>
 
       <div className="row" style={{ marginTop: 10 }}>
         <button onClick={() => downloadSvg(`${base}.svg`, svg)}>Download SVG</button>

@@ -5,21 +5,8 @@ import { assessQuality } from '../core/quality';
 import type { MazeMap, Point, Project, TrackPoint, VideoRecord } from '../core/types';
 
 /**
- * The example cohort that loads on first visit.
- *
- * The brief forbids committing the sample videos to this repository, and a tool
- * that opens to an empty drop zone gives a first-time visitor nothing to look
- * at. So the example is a set of synthetic trajectories, generated here and
- * scored by the same code path as real data.
- *
- * This is labelled as synthetic everywhere it appears. Presenting generated
- * data as if it were a real recording would be exactly the kind of quiet
- * dishonesty this tool is built to avoid. What it demonstrates is genuine: the
- * scoring, the occlusion reasoning, the strategy classifier, the correction
- * workflow and the export all run on it unmodified.
- *
- * The three animals are chosen to show the three search strategies, because
- * strategy is the readout a reviewer will want to interrogate first.
+ * Synthetic example trials (two cohorts × three days). Labelled as generated.
+ * Scored with the same code as real data so Export has something to draw.
  */
 
 const FPS = 30;
@@ -39,7 +26,7 @@ function exampleMap(): MazeMap {
   };
 }
 
-/** Deterministic pseudo-random so the example is identical on every load. */
+/** Same sequence every load. */
 function rng(seed: number) {
   let s = seed >>> 0;
   return () => {
@@ -90,7 +77,7 @@ function push(b: Builder, p: Point) {
   });
 }
 
-/** Frames where the animal is out of sight, with a stated reason. */
+/** Out of sight, with a stated reason. */
 function vanish(b: Builder, seconds: number, state: TrackPoint['state']) {
   const frames = Math.max(1, Math.round(seconds * FPS));
   for (let i = 0; i < frames; i++) {
@@ -107,7 +94,7 @@ function vanish(b: Builder, seconds: number, state: TrackPoint['state']) {
   }
 }
 
-/** Animal that remembers: near-direct route, escapes quickly. */
+/** Near-direct route. */
 function spatialTrial(map: MazeMap): TrackPoint[] {
   const rand = rng(11);
   const target = map.holes[0]!;
@@ -122,7 +109,7 @@ function spatialTrial(map: MazeMap): TrackPoint[] {
   return b.points;
 }
 
-/** Animal that works round the ring: short latency, many errors, no memory. */
+/** Walks the ring. */
 function serialTrial(map: MazeMap): TrackPoint[] {
   const rand = rng(29);
   const b = make(map.platformCenter);
@@ -139,14 +126,7 @@ function serialTrial(map: MazeMap): TrackPoint[] {
   return b.points;
 }
 
-/**
- * Animal that searches randomly, with a real tracking dropout partway through.
- *
- * The dropout is deliberate. It is the video a reviewer should click on: the
- * quality panel flags it, the timeline shows the gap, and the tool refuses to
- * draw a trajectory across it. This is the behaviour the whole design exists to
- * demonstrate, so the example cohort has to contain one.
- */
+/** Random search plus a real dropout in the middle of the platform. */
 function randomTrialWithDropout(map: MazeMap): TrackPoint[] {
   const rand = rng(47);
   const b = make(map.platformCenter);
@@ -157,8 +137,7 @@ function randomTrialWithDropout(map: MazeMap): TrackPoint[] {
   pause(b, 0.6, 6, rand);
   moveTo(b, { x: map.platformCenter.x - 150, y: map.platformCenter.y + 40 }, 1.5, 12, rand);
 
-  // Lost in the middle of the platform. Not near any hole, so the tool must
-  // call this a measurement failure rather than a hole entry.
+  // Lost, not near a hole → tracking failure, not a hole entry.
   vanish(b, 3.5, 'lost');
 
   b.at = { x: map.platformCenter.x + 120, y: map.platformCenter.y - 60 };
@@ -175,6 +154,8 @@ function makeRecord(
   animalId: string,
   track: TrackPoint[],
   map: MazeMap,
+  cohort: string,
+  day: number,
 ): VideoRecord {
   const base: VideoRecord = {
     id,
@@ -185,8 +166,8 @@ function makeRecord(
     width: W,
     height: H,
     animalId,
-    cohort: 'example',
-    day: 3,
+    cohort,
+    day,
     trialType: 'acquisition',
     map,
     track,
@@ -211,9 +192,12 @@ export function buildExampleProject(): Project {
     createdAt: new Date().toISOString(),
     params: DEFAULT_PARAMS,
     videos: [
-      makeRecord('example-A', 'M-014', spatialTrial(map), map),
-      makeRecord('example-B', 'M-021', serialTrial(map), map),
-      makeRecord('example-C', 'M-033', randomTrialWithDropout(map), map),
+      makeRecord('example-A', 'M-014', spatialTrial(map), map, 'control', 1),
+      makeRecord('example-B', 'M-021', serialTrial(map), map, 'control', 2),
+      makeRecord('example-C', 'M-033', randomTrialWithDropout(map), map, 'control', 3),
+      makeRecord('example-D', 'M-101', serialTrial(map), map, 'treated', 1),
+      makeRecord('example-E', 'M-102', spatialTrial(map), map, 'treated', 2),
+      makeRecord('example-F', 'M-103', spatialTrial(map), map, 'treated', 3),
     ],
   };
 }

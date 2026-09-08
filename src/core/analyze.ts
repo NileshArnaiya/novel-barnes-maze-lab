@@ -21,12 +21,8 @@ import type {
 } from './types';
 
 /**
- * One place where a track plus a map plus parameters becomes a scored trial.
- *
- * Keeping this as a single pure function is what makes the parameter sweep
- * possible: the sensitivity view just calls it in a loop with different
- * thresholds. It is also the only thing the UI needs to call when a user drags
- * a slider or edits a frame.
+ * Score one trial: events + summary from a track, map, and parameters.
+ * Pure, so a slider drag or a parameter sweep just calls it again.
  */
 export function analyze(
   video: VideoRecord,
@@ -37,12 +33,8 @@ export function analyze(
   const events = detectAllEvents(track, map, params, video.trialType);
   const auto = classifyStrategy(track, events, map);
 
-  // A human override replaces the label but keeps the evidence, so a reviewer
-  // can still see what the classifier thought. The override is honoured even
-  // when it matches the automatic label: a person confirming the classifier is
-  // a real decision worth recording as human, and dropping it when the two
-  // agreed made the dropdown look like it did nothing whenever the user picked
-  // the label already showing.
+  // Override keeps the automatic reasons underneath. Confirming the same label
+  // still counts as human — otherwise the dropdown looks like it did nothing.
   const strategy = video.strategyOverride
     ? {
         ...auto,
@@ -80,15 +72,7 @@ export function analyze(
   return { events, summary };
 }
 
-/**
- * Threshold sensitivity sweep.
- *
- * In six months someone will ask why two cohorts disagree, and the answer will
- * often be a threshold. Rather than only recording the threshold we used, this
- * shows how the result moves as it changes, which turns an arbitrary choice
- * into a documented robustness check. A measure that swings wildly across the
- * plausible range is not a finding.
- */
+/** Re-score the same trial at several values of one parameter. */
 export function sweepParam(
   video: VideoRecord,
   track: readonly TrackPoint[],

@@ -7,16 +7,8 @@ import { ArenaCanvas } from '../components/ArenaCanvas';
 import { useVideoFrameSource } from '../components/VideoFrameSource';
 
 /**
- * Step 2: define the maze, once.
- *
- * Twenty holes across sixty videos is about 1200 clicks done by hand. This
- * screen exists to make that number roughly twenty: place the ring on one
- * video, mark the escape hole, then apply the same geometry to the rest of the
- * cohort. The stated goal is that the second video is faster than the first.
- *
- * The ring is draggable: move it onto the platform, drag the rim to resize,
- * drag a hole to rotate. Everything that affects scoring stays visible and
- * editable in number fields under the canvas, so nothing is drag-only.
+ * Step 2: place the maze once, then apply it to the cohort.
+ * Goal: the second video is faster than the first.
  */
 function asManual(map: MazeMap): MazeMap {
   return { ...map, origin: 'manual', registrationScore: undefined };
@@ -27,28 +19,21 @@ export function Maze({ video, onDone }: { video: VideoRecord; onDone?: () => voi
   const [holeCount, setHoleCount] = useState(20);
   const [diameterCm, setDiameterCm] = useState(video.map?.platformDiameterCm ?? 92);
   const [applied, setApplied] = useState<number | null>(null);
-  // Live geometry while a drag is in progress. Scoring waits until the pointer
-  // is released, otherwise every pixel of a drag would rescore the trial.
+  // Draft while dragging. Score only on pointer-up.
   const [draftMap, setDraftMap] = useState<MazeMap | null>(null);
 
   useEffect(() => {
     setDraftMap(null);
   }, [video.id]);
 
-  // Show the footage here, not only in review. This is the first screen after
-  // loading, so it is where a user checks that the right file arrived and that
-  // the ring they are placing actually lines up with the holes in their maze.
+  // Show the footage here so the ring is placed on the right video.
   const { videoEl, seekTick } = useVideoFrameSource(getFile(video.id), 1);
 
   const map = video.map;
   const live = draftMap ?? map;
 
   /**
-   * Build a default ring when there is no video frame to detect from.
-   *
-   * Auto-detection needs pixels. Imported pose files have none, so we place a
-   * sensible ring from the trajectory's own extent and let the user nudge it.
-   * A rough starting point the user adjusts beats an empty canvas.
+   * Default ring when there is no frame (imported pose). Built from the track extent.
    */
   const placeDefault = () => {
     const pts = (video.track ?? []).filter((p) => p.body).map((p) => p.body!);
@@ -81,7 +66,7 @@ export function Maze({ video, onDone }: { video: VideoRecord; onDone?: () => voi
     commitMap(asManual(registerMap(source, center, radiusPx)));
   };
 
-  /** Mark the hole nearest the click as the escape hole. */
+  /** Click sets the target hole. Scoring waits until this is confirmed. */
   const pickTarget = (x: number, y: number) => {
     const source = live;
     if (!source) return;
@@ -104,7 +89,10 @@ export function Maze({ video, onDone }: { video: VideoRecord; onDone?: () => voi
     });
   };
 
-  /** Copy this geometry onto every other trial in the cohort. */
+  /**
+   * Copy this geometry onto the other trials. Does not guess rotation —
+   * a second camera still needs the overlay sitting on the real holes.
+   */
   const applyToCohort = () => {
     if (!map) return;
     let n = 0;
@@ -253,8 +241,9 @@ export function Maze({ video, onDone }: { video: VideoRecord; onDone?: () => voi
         <div className="panel" style={{ marginTop: 18 }}>
           <h3>Reuse this across the cohort</h3>
           <p className="hint" style={{ margin: '6px 0 14px' }}>
-            The same rig filmed the same way needs the same geometry. Applying it here is what
-            stops you placing twenty holes sixty times.
+            The second video is faster than the first: the same rig filmed the same way needs
+            the same geometry, so the ring is registered onto the other trials instead of being
+            clicked again. That is what stops you placing twenty holes sixty times.
           </p>
           <div className="row">
             <button onClick={applyToCohort}>
@@ -266,8 +255,9 @@ export function Maze({ video, onDone }: { video: VideoRecord; onDone?: () => voi
           </div>
           {applied !== null ? (
             <p className="hint" style={{ marginTop: 10 }}>
-              Applied to {applied} trials. Check each one in step 4; a trial whose platform sits
-              differently will need its own ring.
+              Applied to {applied} trials, escape hole included, so every one after this is
+              faster than the first. Rotation is never guessed: check each trial, and one whose
+              platform sits differently will need its own ring.
             </p>
           ) : null}
         </div>

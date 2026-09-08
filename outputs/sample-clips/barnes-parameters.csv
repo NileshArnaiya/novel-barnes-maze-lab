@@ -1,0 +1,17 @@
+parameter,value
+tool_version,0.1.0
+schema_version,1
+exported_at,2026-09-08T11:52:47.832Z
+error_counting_convention,distinct non-target holes investigated
+movement_floor_cm_s,1
+investigationRadiusCm,3
+investigationMinDwellS,0.2
+investigationRefractoryS,1
+escapeConfirmFrames,8
+reachedTargetRadiusCm,5
+smoothingWindowFrames,5
+maxGapFillFrames,0
+trialTimeoutS,180
+target_hole_index:test50.mp4,0
+target_hole_index:test51.mp4,0
+target_hole_index:test53.mp4,0

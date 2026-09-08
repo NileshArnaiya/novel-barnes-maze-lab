@@ -7,14 +7,7 @@ export function distance(a: Point, b: Point): number {
   return Math.hypot(dx, dy);
 }
 
-/**
- * Pixels per centimetre for this video.
- *
- * Camera height varies between rigs and sometimes between days on the same rig,
- * so this is derived per video from the platform, whose real diameter the user
- * types in. Reporting path length in pixels would make it incomparable across
- * videos and unusable in a paper.
- */
+/** Pixels per centimetre from the platform diameter the user typed. */
 export function pixelsPerCm(map: MazeMap): number {
   return (map.platformRadiusPx * 2) / map.platformDiameterCm;
 }
@@ -28,9 +21,8 @@ export function cmToPx(map: MazeMap, cm: number): number {
 }
 
 /**
- * Angle of a point around the platform centre, in radians, measured
- * counter-clockwise from the positive x axis. Image y grows downward, so we
- * negate dy to get a conventional maths orientation. Returns 0..2π.
+ * Angle around the platform, radians, 0..2π, counter-clockwise from +x.
+ * Image y grows down, so dy is negated.
  */
 export function angleAround(center: Point, p: Point): number {
   const a = Math.atan2(-(p.y - center.y), p.x - center.x);
@@ -38,10 +30,7 @@ export function angleAround(center: Point, p: Point): number {
 }
 
 /**
- * Which quadrant a point falls in, where quadrant 0 is centred on the target
- * hole. Quadrant occupancy is the standard probe-trial readout, and defining it
- * relative to the target rather than to the image axes is what makes it
- * comparable between animals whose target hole differs.
+ * Quadrant 0 is centred on the target hole, not the image axes.
  */
 export function quadrantOf(map: MazeMap, p: Point): number {
   const target = map.holes.find((h) => h.isTarget);
@@ -75,23 +64,14 @@ export function nearestHole(
   return best;
 }
 
-/**
- * Ring distance between two hole indices, taking the shorter way round.
- * With 20 holes, holes 0 and 19 are adjacent, not 19 apart. Serial-search
- * detection is meaningless without this.
- */
+/** Shortest distance around the ring. Holes 0 and 19 are neighbours on a 20-hole maze. */
 export function ringDistance(a: number, b: number, holeCount: number): number {
   const raw = Math.abs(a - b);
   return Math.min(raw, holeCount - raw);
 }
 
 /**
- * Least-squares circle fit (Kåsa method).
- *
- * Given points on the platform edge, solves for centre and radius by turning
- * the circle equation into a linear system. Cheap, closed-form, and good enough
- * when the points really are on a circle; it biases toward smaller radii when
- * the arc is short, which is why the UI lets the user nudge the result.
+ * Least-squares circle (Kåsa). Needs at least 3 points. Short arcs bias small.
  */
 export function fitCircle(
   points: readonly Point[],
@@ -108,7 +88,7 @@ export function fitCircle(
   const mx = sx / n;
   const my = sy / n;
 
-  // Work in centred coordinates for numerical stability.
+  // Centre the coordinates so the linear system is stable.
   let suu = 0;
   let suv = 0;
   let svv = 0;
@@ -141,13 +121,7 @@ export function fitCircle(
   return { center: { x: uc + mx, y: vc + my }, radius };
 }
 
-/**
- * Build a ring of evenly spaced holes.
- *
- * Used both by auto-detection (as the model it fits) and by the manual editor,
- * so a user who nudges the ring gets the same representation the detector
- * produces. `startAngle` is where hole 0 sits.
- */
+/** Evenly spaced holes. `startAngle` is where hole 0 sits. */
 export function buildHoleRing(
   center: Point,
   ringRadiusPx: number,
@@ -172,18 +146,8 @@ export function buildHoleRing(
 }
 
 /**
- * Transfer a maze map from one video to another.
- *
- * Both videos are the same rig filmed from a fixed camera, so the platform
- * moves by at most a small translation and scale between recordings. We solve
- * for that similarity transform from the two platform circles alone, which is
- * why detecting the platform in a new video is enough to place all 20 holes.
- *
- * Rotation is deliberately not estimated: nothing in a top-down circular
- * platform pins down rotation reliably, and guessing it would silently
- * renumber every hole. Instead the transferred map keeps the source ring
- * orientation and the user confirms it. A wrong assumption here would corrupt
- * the target-hole identity, which is the one thing the whole analysis rests on.
+ * Copy a map onto another video by translating and scaling the platform.
+ * Rotation is not guessed — that would renumber the escape hole.
  */
 export function registerMap(
   source: MazeMap,
@@ -200,8 +164,7 @@ export function registerMap(
     },
   }));
 
-  // Score how believable the transfer is. A large scale change means the two
-  // videos were not filmed the same way and the user should look at it.
+  // A big scale change means the two videos were not filmed the same way.
   const scaleDeviation = Math.abs(1 - scale);
   const registrationScore = Math.max(0, 1 - scaleDeviation * 4);
 
@@ -212,20 +175,13 @@ export function registerMap(
     holes,
     origin: 'registered',
     registrationScore,
-    // The target choice does carry over: the escape hole is in the same
-    // physical place across a cohort filmed on one rig. If it is not, the user
-    // is expected to re-mark it, which the review step prompts for.
+    // Escape hole carries over; re-mark it if this rig is different.
     targetConfirmed: source.targetConfirmed,
   };
 }
 
 /**
- * Rotate hole positions around the platform centre.
- *
- * Used when the user twists the ring to match the holes in the footage.
- * Indices and the target flag stay put: rotating the drawing must not
- * silently renumber the escape hole, because every target-relative measure
- * depends on which hole is the target.
+ * Twist the ring. Hole indices and the target flag stay put.
  */
 export function rotateMap(map: MazeMap, deltaRad: number): MazeMap {
   if (deltaRad === 0) return map;
