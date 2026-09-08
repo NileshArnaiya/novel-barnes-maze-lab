@@ -8,32 +8,14 @@ import type {
 } from './types';
 
 /**
- * Search strategy classification.
+ * Rule-based search strategy: spatial / serial / random.
  *
- * Strategy is the sensitive readout in the Barnes maze: two animals can share a
- * latency while searching in completely different ways, and the difference is
- * what distinguishes hippocampal spatial memory from a non-spatial workaround.
- * Historically it is scored by eye, which is slow and drifts between raters.
- *
- * The principled automated version is BUNS, which trains a support vector
- * machine on trajectory features (Illouz et al., Bioinformatics 2016,
- * 32(21):3314). We deliberately do not ship a trained model. A model shipped
- * without its training set is a black box a user cannot audit, and this tool's
- * whole argument is that the user must be able to see why a number came out.
- *
- * So this is a transparent rule-based classifier over the same feature family.
- * It states its evidence, it reports a confidence, and the user can override
- * the label. An override is recorded as a human decision, not as a correction
- * to the algorithm.
- *
- * The three canonical strategies:
- *   spatial - goes more or less directly to the target
- *   serial  - works around the ring hole by hole until it finds the target
- *   random  - crosses the platform repeatedly with no systematic pattern
+ * No trained model. Reasons are listed so the label can be overridden.
+ * Serial is checked first — a walk around the ring can look direct by luck.
  */
 
 export interface StrategyThresholds {
-  /** Above this directness a trajectory counts as direct. */
+  /** Directness above this counts as a directed route. */
   spatialDirectness: number;
   /** At or below this many non-target holes, the search was targeted. */
   spatialMaxHoles: number;
@@ -44,14 +26,8 @@ export interface StrategyThresholds {
 }
 
 /**
- * Directness of 0.65 was the first guess and it was too strict. A real animal
- * that heads to the target still curves, pauses, and corrects, so demanding
- * two thirds of a perfect beeline classified genuinely spatial trials as
- * random. 0.45 is roughly "went about twice as far as the straight line",
- * which is what a directed approach actually looks like on video.
- *
- * This is a threshold, not a fact, which is why it is here and adjustable
- * rather than inline in the classifier.
+ * 0.45 is roughly "went about twice the straight-line distance".
+ * 0.65 was too strict — real animals curve and pause.
  */
 export const DEFAULT_STRATEGY_THRESHOLDS: StrategyThresholds = {
   spatialDirectness: 0.45,
@@ -61,13 +37,8 @@ export const DEFAULT_STRATEGY_THRESHOLDS: StrategyThresholds = {
 };
 
 /**
- * Longest run of consecutively investigated holes that are neighbours on the
- * ring. A serial searcher produces a long run; a spatial searcher produces
- * almost none.
- *
- * Direction is allowed to flip, because a real animal working round the ring
- * will sometimes double back a hole and continue. Requiring a single direction
- * would classify most genuine serial searches as random.
+ * Longest run of neighbouring holes on the ring. Direction may flip;
+ * animals working the ring often back up one hole.
  */
 export function longestSerialRun(
   investigations: readonly MazeEvent[],
@@ -96,13 +67,8 @@ export function longestSerialRun(
 }
 
 /**
- * Path directness: straight-line distance from start to target, divided by
- * distance actually travelled to get there. 1.0 is a perfect beeline, values
- * near 0 mean a long wandering route.
- *
- * Measured only up to the moment the target is first reached. Including the
- * whole trial would penalise an animal that found the target quickly and then
- * explored, which is not what the measure is for.
+ * Straight-line distance to target / path travelled, up to first reach.
+ * 1 is a beeline. Measured only until reach so later wandering does not count.
  */
 export function pathDirectness(
   track: readonly TrackPoint[],
@@ -117,9 +83,7 @@ export function pathDirectness(
 
   const end = reachedFrame ?? Number.POSITIVE_INFINITY;
 
-  // Same noise floor as path length. Without it, an animal that pauses to
-  // investigate a hole accumulates jitter that looks like wandering, and a
-  // perfectly direct route scores as random.
+  // Same noise floor as path length, or pauses look like wandering.
   let travelledCm = 0;
   for (let i = 1; i < track.length; i++) {
     const a = track[i - 1];
@@ -135,12 +99,11 @@ export function pathDirectness(
   if (travelledCm <= 0) return 0;
 
   const straightCm = pxToCm(map, distance(first.body, target.center));
-  // Cap at 1: floating point and smoothing can make a beeline look slightly
-  // shorter than the straight line, and a directness above 1 is meaningless.
+  // Smoothing can make a beeline look slightly shorter than the straight line.
   return Math.min(1, straightCm / travelledCm);
 }
 
-/** Classify one trial. Pure, deterministic, and explains itself. */
+/** Classify one trial. Pure; explains itself in `reasoning`. */
 export function classifyStrategy(
   track: readonly TrackPoint[],
   events: readonly MazeEvent[],
@@ -173,7 +136,7 @@ export function classifyStrategy(
 
   const reasoning: string[] = [];
 
-  // Nothing to classify. Saying so is more useful than picking a label.
+  // Nothing to classify.
   if (investigations.length === 0 && !reached) {
     return {
       label: 'undetermined',
@@ -187,9 +150,7 @@ export function classifyStrategy(
     };
   }
 
-  // Serial is checked before spatial. An animal that works round the ring and
-  // happens to start next to the target can look direct, and calling that
-  // spatial would overstate its memory.
+  // Serial first: a ring-walk that starts near the target can look spatial.
   if (serialRun >= thresholds.serialMinRun) {
     reasoning.push(
       `Investigated ${serialRun} neighbouring holes in a row, which is the signature of a serial search around the ring.`,
@@ -207,20 +168,8 @@ export function classifyStrategy(
     return { label: 'serial', confidence, reasoning, features, provenance: 'auto' };
   }
 
-  /**
-   * Spatial search has two signatures, and requiring both was the bug.
-   *
-   * The obvious one is a direct route: high path directness with few errors.
-   * The second is a concentrated search: an animal that goes to the right
-   * region of the platform and checks two or three holes there has used
-   * spatial memory even though its path is not a straight line. Quadrant
-   * occupancy is the standard index for exactly that, and it is what a human
-   * rater is using when they call such a trial spatial by eye.
-   *
-   * Requiring high directness AND few errors classified the second kind as
-   * random, which understates learning in precisely the animals that have
-   * learned but are cautious.
-   */
+  // Spatial: a direct route, or a search concentrated in the target quadrant.
+  // Requiring both missed cautious animals that still used memory.
   const directRoute =
     directness >= thresholds.spatialDirectness && nonTargetHoles <= thresholds.spatialMaxHoles;
   const concentratedSearch =
@@ -266,8 +215,7 @@ export function classifyStrategy(
     );
   }
 
-  // Confidence in "random" is deliberately capped. Random is the residual
-  // category, and a residual is weaker evidence than a positive match.
+  // Random is the leftover bin; keep confidence modest.
   return {
     label: 'random',
     confidence: 0.5,

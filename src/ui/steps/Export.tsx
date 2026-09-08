@@ -1,23 +1,45 @@
-import { downloadText, eventsCsv, parametersCsv, projectJson, trialSummaryCsv } from '../../io/csv';
-import { downloadWorkbook, methodsText } from '../../io/workbook';
-import { exportSleapCsv } from '../../io/poseImport';
 import { useState } from 'react';
 import type { CurveMeasure } from '../../core/aggregate';
+import { hasCohortSpan } from '../../core/aggregate';
+import { downloadText, eventsCsv, parametersCsv, projectJson, trialSummaryCsv } from '../../io/csv';
+import {
+  cohortComparisonSvg,
+  downloadPng,
+  downloadSvg,
+  strategyByDaySvg,
+} from '../../io/figures';
+import { buildCombinedZip, downloadBytes } from '../../io/exportPack';
+import { browserRasterizer, buildReportPdf } from '../../io/report';
+import { downloadWorkbook, methodsText } from '../../io/workbook';
+import { exportSleapCsv } from '../../io/poseImport';
 import { LearningCurve } from '../components/LearningCurve';
 import { useStore } from '../../state/store';
 
 /**
- * Step 5: export.
- *
- * Four files rather than one. A single spreadsheet with everything in it forces
- * a scientist to unpick it before they can use it, and that unpicking is where
- * transcription errors come from. Each file has one shape and one job.
+ * Step 5: combined ZIP (CSVs, figures, PDF) plus the older single-file downloads.
  */
 export function Export() {
   const { project, activeVideo } = useStore();
   const [curveMeasure, setCurveMeasure] = useState<CurveMeasure>('primaryLatencyS');
+  const [busy, setBusy] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const scored = project.videos.filter((v) => v.summary).length;
   const stamp = new Date().toISOString().slice(0, 10);
+  const compare = cohortComparisonSvg(project, curveMeasure);
+  const strat = strategyByDaySvg(project);
+  const cohortReady = hasCohortSpan(project);
+
+  const run = async (label: string, work: () => Promise<void>) => {
+    setBusy(label);
+    setExportError(null);
+    try {
+      await work();
+      setBusy(null);
+    } catch (e) {
+      setBusy(null);
+      setExportError(e instanceof Error ? e.message : 'Export failed.');
+    }
+  };
 
   return (
     <div>
@@ -27,6 +49,45 @@ export function Export() {
         version and the thresholds used, so a result stays reproducible after you have
         forgotten what you set.
       </p>
+
+      <div className="panel">
+        <h3>Combined results</h3>
+        <p className="hint" style={{ margin: '6px 0 12px' }}>
+          One ZIP with the trial summary, the event table, parameters, SVG figures, and a
+          compiled PDF of the same numbers with the figures embedded. This is the file to
+          keep.
+        </p>
+        <div className="row">
+          <button
+            className="primary"
+            disabled={scored === 0 || Boolean(busy)}
+            onClick={() =>
+              void run('Building the ZIP', async () => {
+                const zip = await buildCombinedZip(project);
+                downloadBytes(`barnes-results-${stamp}.zip`, zip, 'application/zip');
+              })
+            }
+          >
+            {busy === 'Building the ZIP' ? 'Building…' : 'Download combined results'}
+          </button>
+          <button
+            disabled={scored === 0 || Boolean(busy)}
+            onClick={() =>
+              void run('Building the PDF', async () => {
+                const pdf = await buildReportPdf(project, browserRasterizer);
+                downloadBytes(`barnes-report-${stamp}.pdf`, pdf, 'application/pdf');
+              })
+            }
+          >
+            {busy === 'Building the PDF' ? 'Building…' : 'Download PDF only'}
+          </button>
+        </div>
+        {exportError ? (
+          <p className="hint" style={{ marginTop: 10, color: '#7a4f0d' }}>
+            {exportError}
+          </p>
+        ) : null}
+      </div>
 
       <div className="panel">
         <h3>Learning curve</h3>
@@ -39,6 +100,49 @@ export function Export() {
       </div>
 
       <div className="panel">
+        <h3>Cohort comparison</h3>
+        <p className="hint" style={{ margin: '6px 0 12px' }}>
+          Faint lines are individual animals. Bold lines are the cohort mean with standard
+          error. Below, search strategy stacked by day.
+        </p>
+        {compare ? (
+          <div
+            style={{ border: '1px solid var(--rule)', borderRadius: 8, overflow: 'hidden' }}
+            dangerouslySetInnerHTML={{ __html: compare }}
+          />
+        ) : (
+          <p className="hint">
+            Needs at least two training days or two cohorts. The example data has both once
+            loaded.
+          </p>
+        )}
+        {compare ? (
+          <div className="row" style={{ marginTop: 10 }}>
+            <button onClick={() => downloadSvg('cohort-comparison.svg', compare)}>
+              Download SVG
+            </button>
+            <button onClick={() => void downloadPng('cohort-comparison.png', compare)}>
+              Download PNG
+            </button>
+          </div>
+        ) : null}
+        {strat && cohortReady ? (
+          <div style={{ marginTop: 16 }}>
+            <div
+              style={{ border: '1px solid var(--rule)', borderRadius: 8, overflow: 'hidden' }}
+              dangerouslySetInnerHTML={{ __html: strat }}
+            />
+            <div className="row" style={{ marginTop: 10 }}>
+              <button onClick={() => downloadSvg('strategy-by-day.svg', strat)}>Download SVG</button>
+              <button onClick={() => void downloadPng('strategy-by-day.png', strat)}>
+                Download PNG
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="panel">
         <h3>Analysis-ready workbook</h3>
         <p className="hint" style={{ margin: '6px 0 12px' }}>
           Seven sheets: measurements, subjects, events, group summary statistics, a data
@@ -47,10 +151,7 @@ export function Export() {
           collaborator, because it explains itself without you in the room.
         </p>
         <div className="row">
-          <button
-            className="primary"
-            onClick={() => void downloadWorkbook(project, `barnes-dataset-${stamp}.xlsx`)}
-          >
+          <button onClick={() => void downloadWorkbook(project, `barnes-dataset-${stamp}.xlsx`)}>
             Download workbook
           </button>
           <button

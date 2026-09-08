@@ -3,33 +3,18 @@ import type { MazeMap, Point } from '../core/types';
 import type { Frame } from './blob';
 
 /**
- * Automatic detection of the platform and its holes.
- *
- * This is the single biggest usability lever in the tool. Twenty holes across
- * sixty videos is roughly 1200 clicks if done by hand. Detecting the platform
- * and fitting a ring model to it turns that into "confirm, then apply to the
- * rest of the cohort".
- *
- * We do not attempt a general circle detector. We fit a model we already know
- * is correct: one platform circle, and one ring of evenly spaced holes inside
- * it. Fitting a known model to noisy data is far more reliable than searching
- * for arbitrary circles, and when it fails it fails in ways a user can see and
- * correct rather than in ways that look plausible.
+ * Detect the platform circle and a ring of evenly spaced holes.
+ * Fitted as that known model, not a general circle hunt.
  */
 
 export interface DetectionResult {
   map: MazeMap | null;
-  /** Plain-language account of what happened, shown in the UI either way. */
+  /** Shown either way, including on failure. */
   notes: string[];
 }
 
 /**
- * Find the platform by locating the brightest large region.
- *
- * Typical Barnes maze footage is a pale circular platform on a darker
- * surround. We threshold at a high percentile of the frame's brightness,
- * take the centroid and extent of what survives, and fit a circle to its
- * boundary points.
+ * Brightest large region → circle. Typical footage: pale platform on a dark surround.
  */
 export function detectPlatform(
   frame: Frame,
@@ -51,9 +36,7 @@ export function detectPlatform(
     }
   }
 
-  // Boundary points: for each row, the leftmost and rightmost bright pixel.
-  // Sampling rows rather than every pixel keeps this fast and gives the circle
-  // fit a well-distributed set of points around the edge.
+  // Leftmost and rightmost bright pixel per sampled row.
   const boundary: Point[] = [];
   const rowStep = Math.max(1, Math.floor(height / 60));
   for (let y = 0; y < height; y += rowStep) {
@@ -65,7 +48,7 @@ export function detectPlatform(
         right = x;
       }
     }
-    // Skip rows with a very short run: those are noise, not the platform.
+    // Short runs are noise, not the platform.
     if (left >= 0 && right - left > width * 0.1) {
       boundary.push({ x: left, y }, { x: right, y });
     }
@@ -76,13 +59,8 @@ export function detectPlatform(
 }
 
 /**
- * Locate the ring of holes.
- *
- * Holes are dark spots at a fixed radius from the centre. Rather than finding
- * each one independently, we sample brightness around candidate rings and pick
- * the ring radius and rotation whose sampled points are darkest. This finds all
- * twenty at once and is robust to two or three holes being obscured, because
- * the model is fitted to the whole ring rather than to individual detections.
+ * Darkest evenly spaced samples around candidate rings. Fits the whole ring
+ * at once, so a couple of hidden holes do not sink it.
  */
 export function detectHoleRing(
   frame: Frame,
@@ -101,11 +79,8 @@ export function detectHoleRing(
 
   let best: { ringRadius: number; startAngle: number; score: number } | null = null;
 
-  // Holes sit near the rim. Search the outer band of the platform radius.
-  // The upper bound is 0.97 rather than 0.95 because on the sample footage the
-  // real ring sits at about 0.925 of the fitted radius, close enough to the old
-  // bound that a slightly tighter circle fit would have pushed it outside the
-  // search and produced a confidently wrong ring.
+  // Holes sit near the rim. Upper bound 0.97 so a slightly tight platform fit
+  // does not push the real ring (~0.925) out of the search.
   for (let rf = 0.7; rf <= 0.97; rf += 0.005) {
     const ringRadius = platformRadius * rf;
     const angleStep = (2 * Math.PI) / holeCount;
@@ -120,7 +95,7 @@ export function detectHoleRing(
           y: center.y - ringRadius * Math.sin(a),
         });
       }
-      // Lower mean brightness means we landed on more dark holes.
+      // Darker samples → better ring.
       const score = 255 - sum / holeCount;
       if (!best || score > best.score) best = { ringRadius, startAngle, score };
     }
@@ -129,11 +104,7 @@ export function detectHoleRing(
   return best;
 }
 
-/**
- * Full auto-detection. Always returns notes, including on failure, because
- * "it did not work" with a reason is more useful than a silent fallback to
- * manual mode.
- */
+/** Always returns notes, including when it fails. */
 export function detectMaze(
   frame: Frame,
   holeCount: number,
@@ -156,9 +127,7 @@ export function detectMaze(
     return { map: null, notes };
   }
 
-  // A low contrast score means the sampled ring points were not much darker
-  // than the platform, so we probably fitted noise. Say so rather than
-  // presenting a confident wrong ring.
+  // Low contrast: we probably fitted noise. Say so.
   if (ring.score < 40) {
     notes.push(
       `Hole ring contrast is low (score ${ring.score.toFixed(0)}). Check the ring position before continuing.`,

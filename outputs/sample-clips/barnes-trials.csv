@@ -1,0 +1,4 @@
+video_id,file_name,animal_id,cohort,day,trial_type,reached_target,primary_latency_s,escaped,total_latency_s,primary_errors,total_errors,path_length_cm,mean_speed_cm_s,target_quadrant_time_s,strategy,strategy_confidence,strategy_source,path_directness,longest_serial_run,thigmotaxis_fraction,tracked_fraction,human_edited_frames,video_duration_s,frame_rate_fps,qc_flag
+test50,test50.mp4,test50,sample,,acquisition,true,87.77,false,,5,7,736.6,9.3,12.60,random,0.50,auto,0.208,2,0.140,0.973,0,185.50,29.930,A 5.0s stretch with no detection. Check whether the animal was in a hole.
+test51,test51.mp4,test51,sample,,acquisition,false,,false,,2,2,145.0,7.1,17.53,random,0.50,auto,0.315,1,0.265,1.000,0,49.38,15.005,
+test53,test53.mp4,test53,sample,,acquisition,false,,false,,4,4,40.6,5.7,17.64,random,0.50,auto,0.241,3,0.020,0.835,0,30.30,29.934,A 5.0s stretch with no detection. Check whether the animal was in a hole.

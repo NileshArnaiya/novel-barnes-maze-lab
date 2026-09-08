@@ -8,38 +8,43 @@ import {
   type TrackingOptions,
   type TrackingProgress,
 } from '../../tracking/runTracker';
+import { trackBatch, type BatchItem, type BatchOutcome, type BatchProgress } from '../../tracking/batch';
 import type { VideoRecord } from '../../core/types';
 import { getFile, rememberFile } from '../../state/fileStore';
 import { useStore } from '../../state/store';
 
 /**
- * Step 3: tracking.
- *
- * Two paths into the same downstream logic.
- *
- * For a video, we decode every presented frame, subtract a median background,
- * take the largest connected region inside the platform, and then reason about
- * what each disappearance meant.
- *
- * For an imported SLEAP or DeepLabCut track, the positions already exist and
- * detection is skipped. What is still missing is that same reasoning, because a
- * pose estimator reports "no animal found" and stops there. It has no way to
- * know the animal went down a hole. Running our own pass over its output is
- * what recovers escape events from an imported file.
+ * Step 3: track a video, or resolve holes on an imported pose track.
  */
 export function Track({ video, onDone }: { video: VideoRecord; onDone?: () => void }) {
   const { project, updateVideo } = useStore();
   const [notes, setNotes] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<TrackingProgress | null>(null);
+  const [batch, setBatch] = useState<BatchProgress | null>(null);
+  const [batchOutcomes, setBatchOutcomes] = useState<BatchOutcome[] | null>(null);
+  const [retrack, setRetrack] = useState(false);
   const [opts, setOpts] = useState<TrackingOptions>(DEFAULT_TRACKING);
   const stopRef = useRef(false);
   const reselectRef = useRef<HTMLInputElement>(null);
 
   const file = getFile(video.id);
-  // `video.synthetic` first, and only then the extension. The generated example
-  // trials are named example-A.mp4 and so matched the video extension test,
-  // which made the tool demand a file that has never existed.
+
+  /**
+   * Queue: has a map and a file. Skip synthetics. Skip already-tracked unless retrack is on.
+   */
+  const queue: BatchItem[] = project.videos.flatMap((v) => {
+    if (v.synthetic || !v.map) return [];
+    if (v.track && !retrack) return [];
+    const f = getFile(v.id);
+    if (!f) return [];
+    return [{ videoId: v.id, fileName: v.fileName, file: f, map: v.map }];
+  });
+
+  const missingFiles = project.videos.filter(
+    (v) => !v.synthetic && v.map && !v.track && !getFile(v.id),
+  ).length;
+  // Example trials are named example-A.mp4; check synthetic before the extension.
   const isVideo =
     !video.synthetic && /\.(mp4|mov|m4v|webm|avi|mkv)$/i.test(video.fileName);
   const hasImportedTrack = video.track !== null && !isVideo;
@@ -65,17 +70,52 @@ export function Track({ video, onDone }: { video: VideoRecord; onDone?: () => vo
 
       const q = assessQuality(result.track, result.achievedFps || video.fps);
       setNotes([...result.notes, q.flag ?? 'Quality looks acceptable. Check the numbers in step 4.']);
-      // Straight to the results. The user pressed a button and waited; landing
-      // them on the numbers is the answer to "what happened".
       setTimeout(() => onDone?.(), 600);
     } catch (e) {
-      // Decoding failures are common and specific: an unsupported codec, a
-      // browser without frame callbacks, a file that stops partway. Say which,
-      // rather than showing a generic failure the user cannot act on.
       setError(e instanceof Error ? e.message : 'Tracking failed for an unknown reason.');
     } finally {
       setProgress(null);
     }
+  };
+
+  /**
+   * Sequential queue — one trial at a time. Stays here when done so the
+   * per-file list is visible.
+   */
+  const runBatch = async () => {
+    if (queue.length === 0) return;
+    setError(null);
+    setNotes([]);
+    setBatchOutcomes(null);
+    stopRef.current = false;
+
+    const summary = await trackBatch(queue, project.params, opts, {
+      onProgress: setBatch,
+      onTracked: (id, result) => {
+        const target = project.videos.find((v) => v.id === id);
+        updateVideo(id, {
+          track: result.track,
+          fps: result.achievedFps || target?.fps || video.fps,
+          step: 4,
+        });
+      },
+      shouldStop: () => stopRef.current,
+    });
+
+    setBatch(null);
+    setBatchOutcomes(summary.outcomes);
+
+    const ok = summary.outcomes.filter((o) => o.ok).length;
+    const failed = summary.outcomes.length - ok;
+    setNotes([
+      summary.stopped
+        ? `Stopped after ${ok} of ${queue.length} trials. What finished is scored and kept; the rest were not started.`
+        : `${ok} of ${queue.length} trials tracked and scored.`,
+      ...(failed > 0
+        ? [`${failed} could not be tracked. Each one says why below, and the others were unaffected.`]
+        : []),
+      'Open step 5 for the cohort figures and the combined download, or step 4 to review a single trial.',
+    ]);
   };
 
   /** Re-run occlusion reasoning over positions that already exist. */
@@ -98,8 +138,7 @@ export function Track({ video, onDone }: { video: VideoRecord; onDone?: () => vo
       confirmFrames: project.params.escapeConfirmFrames,
     });
 
-    // A re-run never overwrites a human correction. Someone spent time on those
-    // frames and the tracker has no standing to disagree with them.
+    // Never overwrite a human-corrected frame.
     const rebuilt = video.track.map((p, i) =>
       p.provenance === 'human' ? p : { ...p, state: states[i] ?? p.state },
     );
@@ -216,7 +255,43 @@ export function Track({ video, onDone }: { video: VideoRecord; onDone?: () => vo
         </div>
       ) : null}
 
-      {progress ? (
+      {batch ? (
+        <div className="panel">
+          <h3>
+            Video {batch.index} of {batch.total}: {batch.message}
+          </h3>
+          <p className="hint" style={{ margin: '6px 0 0' }}>
+            {batch.fileName}
+          </p>
+          <div
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(batch.fraction * 100)}
+            aria-label={`Video ${batch.index} of ${batch.total}: ${batch.message}`}
+            style={{
+              height: 8,
+              background: 'var(--paper-sunk)',
+              borderRadius: 4,
+              overflow: 'hidden',
+              margin: '12px 0',
+            }}
+          >
+            <div
+              style={{
+                width: `${Math.round(batch.fraction * 100)}%`,
+                height: '100%',
+                background: 'var(--clay)',
+              }}
+            />
+          </div>
+          <p className="hint" style={{ margin: '0 0 12px' }}>
+            Each trial is saved as it finishes, so stopping keeps whatever has already been
+            scored. Leave this tab open: decoding uses the browser's own video pipeline.
+          </p>
+          <button onClick={() => (stopRef.current = true)}>Stop after this video</button>
+        </div>
+      ) : progress ? (
         <div className="panel">
           <h3>{progress.message}</h3>
           <div
@@ -244,14 +319,51 @@ export function Track({ video, onDone }: { video: VideoRecord; onDone?: () => vo
           <button onClick={() => (stopRef.current = true)}>Stop</button>
         </div>
       ) : (
-        <button
-          className="primary"
-          disabled={!video.map || (isVideo ? !file : !hasImportedTrack)}
-          onClick={() => (isVideo && file ? void runVideoTracking(file) : runOnImportedTrack())}
-        >
-          {isVideo ? 'Track this video' : 'Resolve occlusions and smooth'}
-        </button>
+        <div className="row">
+          <button
+            className="primary"
+            disabled={!video.map || (isVideo ? !file : !hasImportedTrack)}
+            onClick={() => (isVideo && file ? void runVideoTracking(file) : runOnImportedTrack())}
+          >
+            {isVideo ? 'Track this video' : 'Resolve occlusions and smooth'}
+          </button>
+          {queue.length > 0 ? (
+            <button onClick={() => void runBatch()}>
+              Track all {queue.length} {retrack ? '' : 'remaining '}
+              {queue.length === 1 ? 'trial' : 'trials'}
+            </button>
+          ) : null}
+        </div>
       )}
+
+      {!batch && !progress && project.videos.length > 1 ? (
+        <div className="panel" style={{ marginTop: 18 }}>
+          <h3>The whole cohort</h3>
+          <p className="hint" style={{ margin: '6px 0 12px' }}>
+            {queue.length > 0
+              ? `${queue.length} ${
+                  queue.length === 1 ? 'trial is' : 'trials are'
+                } ready to run in one queue, one after another with progress you can stop. Sixty
+                videos is the problem this exists for.`
+              : 'Nothing is queued: every trial with a maze and a file has already been tracked. Tick the box below to run them again from scratch.'}
+          </p>
+          <label className="row" style={{ gap: 6, fontSize: 13 }}>
+            <input
+              type="checkbox"
+              checked={retrack}
+              onChange={(e) => setRetrack(e.target.checked)}
+            />
+            Re-track trials that already have a track, discarding hand corrections
+          </label>
+          {missingFiles > 0 ? (
+            <p className="hint" style={{ marginTop: 10 }}>
+              {missingFiles} untracked {missingFiles === 1 ? 'trial is' : 'trials are'} not in the
+              queue because the video file is no longer in memory after a reload. Select each one
+              in the cohort list and choose the file again.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {notes.length > 0 ? (
         <div className="panel" style={{ marginTop: 18 }}>
@@ -259,6 +371,19 @@ export function Track({ video, onDone }: { video: VideoRecord; onDone?: () => vo
           <ul className="reason" style={{ marginTop: 8 }}>
             {notes.map((n, i) => (
               <li key={i}>{n}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {batchOutcomes && batchOutcomes.length > 0 ? (
+        <div className="panel" style={{ marginTop: 18 }}>
+          <h3>Each trial in the queue</h3>
+          <ul className="reason" style={{ marginTop: 8 }}>
+            {batchOutcomes.map((o) => (
+              <li key={o.videoId} style={o.ok ? undefined : { color: '#7a4f0d' }}>
+                {o.note}
+              </li>
             ))}
           </ul>
         </div>

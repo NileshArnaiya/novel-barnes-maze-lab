@@ -1,0 +1,958 @@
+{
+  "schemaVersion": 1,
+  "toolVersion": "0.1.0",
+  "createdAt": "2026-09-08T11:52:43.758Z",
+  "params": {
+    "investigationRadiusCm": 3,
+    "investigationMinDwellS": 0.2,
+    "investigationRefractoryS": 1,
+    "escapeConfirmFrames": 8,
+    "reachedTargetRadiusCm": 5,
+    "smoothingWindowFrames": 5,
+    "maxGapFillFrames": 0,
+    "trialTimeoutS": 180
+  },
+  "videos": [
+    {
+      "id": "test50",
+      "fileName": "test50.mp4",
+      "durationS": 185.50101703075165,
+      "fps": 29.929755043227665,
+      "width": 640,
+      "height": 480,
+      "animalId": "test50",
+      "cohort": "sample",
+      "day": null,
+      "trialType": "acquisition",
+      "map": {
+        "platformCenter": {
+          "x": 323.7245233188822,
+          "y": 238.3076941609423
+        },
+        "platformRadiusPx": 206.39533407020934,
+        "platformDiameterCm": 92,
+        "holes": [
+          {
+            "id": "hole-0",
+            "index": 0,
+            "isTarget": true,
+            "center": {
+              "x": 503.33111729922064,
+              "y": 219.43028045196598
+            }
+          },
+          {
+            "id": "hole-1",
+            "index": 1,
+            "isTarget": false,
+            "center": {
+              "x": 488.7071032475407,
+              "y": 164.85271700049518
+            }
+          },
+          {
+            "id": "hole-2",
+            "index": 2,
+            "isTarget": false,
+            "center": {
+              "x": 457.9334447712171,
+              "y": 117.46543850440878
+            }
+          },
+          {
+            "id": "hole-3",
+            "index": 3,
+            "isTarget": false,
+            "center": {
+              "x": 414.0224819745988,
+              "y": 81.90704194948728
+            }
+          },
+          {
+            "id": "hole-4",
+            "index": 4,
+            "isTarget": false,
+            "center": {
+              "x": 361.27252584188653,
+              "y": 61.65823094044319
+            }
+          },
+          {
+            "id": "hole-5",
+            "index": 5,
+            "isTarget": false,
+            "center": {
+              "x": 304.8471096099059,
+              "y": 58.70110018060379
+            }
+          },
+          {
+            "id": "hole-6",
+            "index": 6,
+            "isTarget": false,
+            "center": {
+              "x": 250.26954615843505,
+              "y": 73.32511423228374
+            }
+          },
+          {
+            "id": "hole-7",
+            "index": 7,
+            "isTarget": false,
+            "center": {
+              "x": 202.88226766234865,
+              "y": 104.09877270860736
+            }
+          },
+          {
+            "id": "hole-8",
+            "index": 8,
+            "isTarget": false,
+            "center": {
+              "x": 167.32387110742712,
+              "y": 148.0097355052257
+            }
+          },
+          {
+            "id": "hole-9",
+            "index": 9,
+            "isTarget": false,
+            "center": {
+              "x": 147.07506009838303,
+              "y": 200.75969163793798
+            }
+          },
+          {
+            "id": "hole-10",
+            "index": 10,
+            "isTarget": false,
+            "center": {
+              "x": 144.1179293385437,
+              "y": 257.1851078699186
+            }
+          },
+          {
+            "id": "hole-11",
+            "index": 11,
+            "isTarget": false,
+            "center": {
+              "x": 158.74194339022358,
+              "y": 311.76267132138935
+            }
+          },
+          {
+            "id": "hole-12",
+            "index": 12,
+            "isTarget": false,
+            "center": {
+              "x": 189.51560186654723,
+              "y": 359.14994981747583
+            }
+          },
+          {
+            "id": "hole-13",
+            "index": 13,
+            "isTarget": false,
+            "center": {
+              "x": 233.4265646631655,
+              "y": 394.7083463723973
+            }
+          },
+          {
+            "id": "hole-14",
+            "index": 14,
+            "isTarget": false,
+            "center": {
+              "x": 286.17652079587776,
+              "y": 414.95715738144145
+            }
+          },
+          {
+            "id": "hole-15",
+            "index": 15,
+            "isTarget": false,
+            "center": {
+              "x": 342.6019370278584,
+              "y": 417.91428814128085
+            }
+          },
+          {
+            "id": "hole-16",
+            "index": 16,
+            "isTarget": false,
+            "center": {
+              "x": 397.17950047932925,
+              "y": 403.29027408960087
+            }
+          },
+          {
+            "id": "hole-17",
+            "index": 17,
+            "isTarget": false,
+            "center": {
+              "x": 444.5667789754156,
+              "y": 372.5166156132773
+            }
+          },
+          {
+            "id": "hole-18",
+            "index": 18,
+            "isTarget": false,
+            "center": {
+              "x": 480.1251755303372,
+              "y": 328.605652816659
+            }
+          },
+          {
+            "id": "hole-19",
+            "index": 19,
+            "isTarget": false,
+            "center": {
+              "x": 500.3739865393813,
+              "y": 275.85569668394675
+            }
+          }
+        ],
+        "origin": "auto-detected",
+        "targetConfirmed": true
+      },
+      "track": null,
+      "events": [
+        {
+          "kind": "investigation",
+          "holeId": "hole-13",
+          "holeIndex": 13,
+          "isTargetHole": false,
+          "startFrame": 618,
+          "endFrame": 687,
+          "startT": 20.648348077270267,
+          "endT": 22.95374616356743,
+          "provenance": "auto"
+        },
+        {
+          "kind": "investigation",
+          "holeId": "hole-12",
+          "holeIndex": 12,
+          "isTargetHole": false,
+          "startFrame": 747,
+          "endFrame": 861,
+          "startT": 24.958440151651924,
+          "endT": 28.767358729012457,
+          "provenance": "auto"
+        },
+        {
+          "kind": "investigation",
+          "holeId": "hole-14",
+          "holeIndex": 14,
+          "isTargetHole": false,
+          "startFrame": 1436,
+          "endFrame": 1464,
+          "startT": 47.9790094481555,
+          "endT": 48.9145333092616,
+          "provenance": "auto"
+        },
+        {
+          "kind": "investigation",
+          "holeId": "hole-8",
+          "holeIndex": 8,
+          "isTargetHole": false,
+          "startFrame": 1907,
+          "endFrame": 1936,
+          "startT": 63.71585725461877,
+          "endT": 64.68479268219293,
+          "provenance": "auto"
+        },
+        {
+          "kind": "investigation",
+          "holeId": "hole-1",
+          "holeIndex": 1,
+          "isTargetHole": false,
+          "startFrame": 2606,
+          "endFrame": 2617,
+          "startT": 87.0705422158031,
+          "endT": 87.43806944695191,
+          "provenance": "auto"
+        },
+        {
+          "kind": "reached-target",
+          "holeId": "hole-0",
+          "holeIndex": 0,
+          "isTargetHole": true,
+          "startFrame": 2627,
+          "endFrame": 2627,
+          "startT": 87.77218511163267,
+          "endT": 87.77218511163267,
+          "provenance": "auto"
+        },
+        {
+          "kind": "investigation",
+          "holeId": "hole-0",
+          "holeIndex": 0,
+          "isTargetHole": true,
+          "startFrame": 2631,
+          "endFrame": 2637,
+          "startT": 87.90583137750497,
+          "endT": 88.10630077631342,
+          "provenance": "auto"
+        },
+        {
+          "kind": "investigation",
+          "holeId": "hole-13",
+          "holeIndex": 13,
+          "isTargetHole": false,
+          "startFrame": 3051,
+          "endFrame": 3066,
+          "startT": 101.9386892940964,
+          "endT": 102.43986279111753,
+          "provenance": "auto"
+        },
+        {
+          "kind": "investigation",
+          "holeId": "hole-13",
+          "holeIndex": 13,
+          "isTargetHole": false,
+          "startFrame": 3165,
+          "endFrame": 3184,
+          "startT": 105.74760787145695,
+          "endT": 106.38242763435036,
+          "provenance": "auto"
+        },
+        {
+          "kind": "investigation",
+          "holeId": "hole-12",
+          "holeIndex": 12,
+          "isTargetHole": false,
+          "startFrame": 4202,
+          "endFrame": 4215,
+          "startT": 140.39540229885057,
+          "endT": 140.82975266293556,
+          "provenance": "auto"
+        },
+        {
+          "kind": "investigation",
+          "holeId": "hole-16",
+          "holeIndex": 16,
+          "isTargetHole": false,
+          "startFrame": 5004,
+          "endFrame": 5010,
+          "startT": 167.19147860624662,
+          "endT": 167.39194800505507,
+          "provenance": "auto"
+        },
+        {
+          "kind": "investigation",
+          "holeId": "hole-15",
+          "holeIndex": 15,
+          "isTargetHole": false,
+          "startFrame": 5150,
+          "endFrame": 5203,
+          "startT": 172.06956731058554,
+          "endT": 173.8403803333935,
+          "provenance": "auto"
+        }
+      ],
+      "summary": {
+        "videoId": "test50",
+        "animalId": "test50",
+        "cohort": "sample",
+        "day": null,
+        "trialType": "acquisition",
+        "primaryLatencyS": 87.77218511163267,
+        "totalLatencyS": null,
+        "primaryErrors": 5,
+        "totalErrors": 7,
+        "pathLengthCm": 736.5750822952645,
+        "meanSpeedCmS": 9.26463807242153,
+        "targetQuadrantTimeS": 12.596160558464234,
+        "strategy": {
+          "label": "random",
+          "confidence": 0.5,
+          "reasoning": [
+            "Path directness was 0.21, below the 0.45 needed to call the route direct.",
+            "Only 7% of the trial was spent in the target quadrant, below the 40% that would indicate a concentrated search.",
+            "Longest run of neighbouring holes was 2, below the 4 needed to call it serial.",
+            "Investigated 7 non-target holes."
+          ],
+          "features": {
+            "holesVisitedBeforeTarget": 7,
+            "pathDirectness": 0.20816656817982993,
+            "longestSerialRun": 2,
+            "targetQuadrantFraction": 0.0679156908665106,
+            "thigmotaxisFraction": 0.13957793409848204
+          },
+          "provenance": "auto"
+        },
+        "trackedFraction": 0.9729827089337176,
+        "humanEditedFrames": 0
+      },
+      "step": 4,
+      "strategyOverride": null,
+      "qcFlag": "A 5.0s stretch with no detection. Check whether the animal was in a hole."
+    },
+    {
+      "id": "test51",
+      "fileName": "test51.mp4",
+      "durationS": 49.382666666666665,
+      "fps": 15.005265005265006,
+      "width": 640,
+      "height": 480,
+      "animalId": "test51",
+      "cohort": "sample",
+      "day": null,
+      "trialType": "acquisition",
+      "map": {
+        "platformCenter": {
+          "x": 284.57212997663373,
+          "y": 234.80125743772086
+        },
+        "platformRadiusPx": 215.14978065323731,
+        "platformDiameterCm": 92,
+        "holes": [
+          {
+            "id": "hole-0",
+            "index": 0,
+            "isTarget": true,
+            "center": {
+              "x": 480.81654287464,
+              "y": 208.96519034212616
+            }
+          },
+          {
+            "id": "hole-1",
+            "index": 1,
+            "isTarget": false,
+            "center": {
+              "x": 463.2278738494491,
+              "y": 149.5868388343987
+            }
+          },
+          {
+            "id": "hole-2",
+            "index": 2,
+            "isTarget": false,
+            "center": {
+              "x": 428.15113584622554,
+              "y": 98.5498683433305
+            }
+          },
+          {
+            "id": "hole-3",
+            "index": 3,
+            "isTarget": false,
+            "center": {
+              "x": 379.01988437472914,
+              "y": 60.8501331360703
+            }
+          },
+          {
+            "id": "hole-4",
+            "index": 4,
+            "isTarget": false,
+            "center": {
+              "x": 320.64342864654765,
+              "y": 40.17794596420518
+            }
+          },
+          {
+            "id": "hole-5",
+            "index": 5,
+            "isTarget": false,
+            "center": {
+              "x": 258.73606288103906,
+              "y": 38.556844539714604
+            }
+          },
+          {
+            "id": "hole-6",
+            "index": 6,
+            "isTarget": false,
+            "center": {
+              "x": 199.3577113733116,
+              "y": 56.14551356490546
+            }
+          },
+          {
+            "id": "hole-7",
+            "index": 7,
+            "isTarget": false,
+            "center": {
+              "x": 148.3207408822434,
+              "y": 91.22225156812905
+            }
+          },
+          {
+            "id": "hole-8",
+            "index": 8,
+            "isTarget": false,
+            "center": {
+              "x": 110.6210056749832,
+              "y": 140.35350303962542
+            }
+          },
+          {
+            "id": "hole-9",
+            "index": 9,
+            "isTarget": false,
+            "center": {
+              "x": 89.94881850311808,
+              "y": 198.72995876780686
+            }
+          },
+          {
+            "id": "hole-10",
+            "index": 10,
+            "isTarget": false,
+            "center": {
+              "x": 88.32771707862747,
+              "y": 260.6373245333155
+            }
+          },
+          {
+            "id": "hole-11",
+            "index": 11,
+            "isTarget": false,
+            "center": {
+              "x": 105.91638610381827,
+              "y": 320.0156760410429
+            }
+          },
+          {
+            "id": "hole-12",
+            "index": 12,
+            "isTarget": false,
+            "center": {
+              "x": 140.9931241070419,
+              "y": 371.0526465321112
+            }
+          },
+          {
+            "id": "hole-13",
+            "index": 13,
+            "isTarget": false,
+            "center": {
+              "x": 190.1243755785383,
+              "y": 408.7523817393714
+            }
+          },
+          {
+            "id": "hole-14",
+            "index": 14,
+            "isTarget": false,
+            "center": {
+              "x": 248.50083130671973,
+              "y": 429.4245689112365
+            }
+          },
+          {
+            "id": "hole-15",
+            "index": 15,
+            "isTarget": false,
+            "center": {
+              "x": 310.40819707222835,
+              "y": 431.0456703357271
+            }
+          },
+          {
+            "id": "hole-16",
+            "index": 16,
+            "isTarget": false,
+            "center": {
+              "x": 369.7865485799558,
+              "y": 413.45700131053627
+            }
+          },
+          {
+            "id": "hole-17",
+            "index": 17,
+            "isTarget": false,
+            "center": {
+              "x": 420.82351907102407,
+              "y": 378.3802633073127
+            }
+          },
+          {
+            "id": "hole-18",
+            "index": 18,
+            "isTarget": false,
+            "center": {
+              "x": 458.5232542782843,
+              "y": 329.2490118358163
+            }
+          },
+          {
+            "id": "hole-19",
+            "index": 19,
+            "isTarget": false,
+            "center": {
+              "x": 479.19544145014936,
+              "y": 270.87255610763486
+            }
+          }
+        ],
+        "origin": "auto-detected",
+        "targetConfirmed": true
+      },
+      "track": null,
+      "events": [
+        {
+          "kind": "investigation",
+          "holeId": "hole-8",
+          "holeIndex": 8,
+          "isTargetHole": false,
+          "startFrame": 200,
+          "endFrame": 344,
+          "startT": 13.328654970760233,
+          "endT": 22.9252865497076,
+          "provenance": "auto"
+        },
+        {
+          "kind": "investigation",
+          "holeId": "hole-1",
+          "holeIndex": 1,
+          "isTargetHole": false,
+          "startFrame": 561,
+          "endFrame": 725,
+          "startT": 37.38687719298245,
+          "endT": 48.31637426900585,
+          "provenance": "auto"
+        }
+      ],
+      "summary": {
+        "videoId": "test51",
+        "animalId": "test51",
+        "cohort": "sample",
+        "day": null,
+        "trialType": "acquisition",
+        "primaryLatencyS": null,
+        "totalLatencyS": null,
+        "primaryErrors": 2,
+        "totalErrors": 2,
+        "pathLengthCm": 144.9550709805326,
+        "meanSpeedCmS": 7.129462496078052,
+        "targetQuadrantTimeS": 17.527181286549705,
+        "strategy": {
+          "label": "random",
+          "confidence": 0.5,
+          "reasoning": [
+            "Path directness was 0.31, below the 0.45 needed to call the route direct.",
+            "Only 36% of the trial was spent in the target quadrant, below the 40% that would indicate a concentrated search.",
+            "Longest run of neighbouring holes was 1, below the 4 needed to call it serial.",
+            "Investigated 2 non-target holes."
+          ],
+          "features": {
+            "holesVisitedBeforeTarget": 2,
+            "pathDirectness": 0.31471750785976016,
+            "longestSerialRun": 1,
+            "targetQuadrantFraction": 0.3554054054054054,
+            "thigmotaxisFraction": 0.26450742240215924
+          },
+          "provenance": "auto"
+        },
+        "trackedFraction": 1,
+        "humanEditedFrames": 0
+      },
+      "step": 4,
+      "strategyOverride": null,
+      "qcFlag": null
+    },
+    {
+      "id": "test53",
+      "fileName": "test53.mp4",
+      "durationS": 30.30014732965009,
+      "fps": 29.933847850055127,
+      "width": 640,
+      "height": 480,
+      "animalId": "test53",
+      "cohort": "sample",
+      "day": null,
+      "trialType": "acquisition",
+      "map": {
+        "platformCenter": {
+          "x": 323.7343444502703,
+          "y": 239.3507312017274
+        },
+        "platformRadiusPx": 206.86689174436347,
+        "platformDiameterCm": 92,
+        "holes": [
+          {
+            "id": "hole-0",
+            "index": 0,
+            "isTarget": true,
+            "center": {
+              "x": 501.69395452583416,
+              "y": 220.6464224765573
+            }
+          },
+          {
+            "id": "hole-1",
+            "index": 1,
+            "isTarget": false,
+            "center": {
+              "x": 487.2040419858668,
+              "y": 166.56933268016974
+            }
+          },
+          {
+            "id": "hole-2",
+            "index": 2,
+            "isTarget": false,
+            "center": {
+              "x": 456.71257649076017,
+              "y": 119.61659326889372
+            }
+          },
+          {
+            "id": "hole-3",
+            "index": 3,
+            "isTarget": false,
+            "center": {
+              "x": 413.2042751297075,
+              "y": 84.38426551527672
+            }
+          },
+          {
+            "id": "hole-4",
+            "index": 4,
+            "isTarget": false,
+            "center": {
+              "x": 360.9380335800894,
+              "y": 64.32113513790458
+            }
+          },
+          {
+            "id": "hole-5",
+            "index": 5,
+            "isTarget": false,
+            "center": {
+              "x": 305.0300357251002,
+              "y": 61.39112112616354
+            }
+          },
+          {
+            "id": "hole-6",
+            "index": 6,
+            "isTarget": false,
+            "center": {
+              "x": 250.95294592871267,
+              "y": 75.88103366613089
+            }
+          },
+          {
+            "id": "hole-7",
+            "index": 7,
+            "isTarget": false,
+            "center": {
+              "x": 204.00020651743665,
+              "y": 106.37249916123756
+            }
+          },
+          {
+            "id": "hole-8",
+            "index": 8,
+            "isTarget": false,
+            "center": {
+              "x": 168.76787876381962,
+              "y": 149.8808005222902
+            }
+          },
+          {
+            "id": "hole-9",
+            "index": 9,
+            "isTarget": false,
+            "center": {
+              "x": 148.70474838644748,
+              "y": 202.14704207190837
+            }
+          },
+          {
+            "id": "hole-10",
+            "index": 10,
+            "isTarget": false,
+            "center": {
+              "x": 145.7747343747065,
+              "y": 258.0550399268975
+            }
+          },
+          {
+            "id": "hole-11",
+            "index": 11,
+            "isTarget": false,
+            "center": {
+              "x": 160.2646469146738,
+              "y": 312.132129723285
+            }
+          },
+          {
+            "id": "hole-12",
+            "index": 12,
+            "isTarget": false,
+            "center": {
+              "x": 190.75611240978048,
+              "y": 359.0848691345611
+            }
+          },
+          {
+            "id": "hole-13",
+            "index": 13,
+            "isTarget": false,
+            "center": {
+              "x": 234.26441377083302,
+              "y": 394.31719688817805
+            }
+          },
+          {
+            "id": "hole-14",
+            "index": 14,
+            "isTarget": false,
+            "center": {
+              "x": 286.5306553204512,
+              "y": 414.38032726555025
+            }
+          },
+          {
+            "id": "hole-15",
+            "index": 15,
+            "isTarget": false,
+            "center": {
+              "x": 342.4386531754403,
+              "y": 417.3103412772913
+            }
+          },
+          {
+            "id": "hole-16",
+            "index": 16,
+            "isTarget": false,
+            "center": {
+              "x": 396.51574297182793,
+              "y": 402.82042873732394
+            }
+          },
+          {
+            "id": "hole-17",
+            "index": 17,
+            "isTarget": false,
+            "center": {
+              "x": 443.46848238310395,
+              "y": 372.32896324221736
+            }
+          },
+          {
+            "id": "hole-18",
+            "index": 18,
+            "isTarget": false,
+            "center": {
+              "x": 478.700810136721,
+              "y": 328.8206618811647
+            }
+          },
+          {
+            "id": "hole-19",
+            "index": 19,
+            "isTarget": false,
+            "center": {
+              "x": 498.7639405140932,
+              "y": 276.5544203315465
+            }
+          }
+        ],
+        "origin": "auto-detected",
+        "targetConfirmed": true
+      },
+      "track": null,
+      "events": [
+        {
+          "kind": "investigation",
+          "holeId": "hole-19",
+          "holeIndex": 19,
+          "isTargetHole": false,
+          "startFrame": 150,
+          "endFrame": 261,
+          "startT": 5.011049723756906,
+          "endT": 8.719226519337017,
+          "provenance": "auto"
+        },
+        {
+          "kind": "investigation",
+          "holeId": "hole-18",
+          "holeIndex": 18,
+          "isTargetHole": false,
+          "startFrame": 356,
+          "endFrame": 421,
+          "startT": 11.892891344383058,
+          "endT": 14.064346224677717,
+          "provenance": "auto"
+        },
+        {
+          "kind": "investigation",
+          "holeId": "hole-16",
+          "holeIndex": 16,
+          "isTargetHole": false,
+          "startFrame": 535,
+          "endFrame": 627,
+          "startT": 17.872744014732966,
+          "endT": 20.946187845303868,
+          "provenance": "auto"
+        },
+        {
+          "kind": "investigation",
+          "holeId": "hole-17",
+          "holeIndex": 17,
+          "isTargetHole": false,
+          "startFrame": 723,
+          "endFrame": 731,
+          "startT": 24.153259668508287,
+          "endT": 24.420515653775322,
+          "provenance": "auto"
+        },
+        {
+          "kind": "investigation",
+          "holeId": "hole-18",
+          "holeIndex": 18,
+          "isTargetHole": false,
+          "startFrame": 814,
+          "endFrame": 906,
+          "startT": 27.19329650092081,
+          "endT": 30.26674033149171,
+          "provenance": "auto"
+        }
+      ],
+      "summary": {
+        "videoId": "test53",
+        "animalId": "test53",
+        "cohort": "sample",
+        "day": null,
+        "trialType": "acquisition",
+        "primaryLatencyS": null,
+        "totalLatencyS": null,
+        "primaryErrors": 4,
+        "totalErrors": 4,
+        "pathLengthCm": 40.62255294149052,
+        "meanSpeedCmS": 5.747078956772865,
+        "targetQuadrantTimeS": 17.638895027624308,
+        "strategy": {
+          "label": "random",
+          "confidence": 0.5,
+          "reasoning": [
+            "Path directness was 0.24, below the 0.45 needed to call the route direct.",
+            "Only 58% of the trial was spent in the target quadrant, below the 40% that would indicate a concentrated search.",
+            "Longest run of neighbouring holes was 3, below the 4 needed to call it serial.",
+            "Investigated 4 non-target holes."
+          ],
+          "features": {
+            "holesVisitedBeforeTarget": 4,
+            "pathDirectness": 0.2406579459413211,
+            "longestSerialRun": 3,
+            "targetQuadrantFraction": 0.5827814569536424,
+            "thigmotaxisFraction": 0.019815059445178335
+          },
+          "provenance": "auto"
+        },
+        "trackedFraction": 0.834619625137817,
+        "humanEditedFrames": 0
+      },
+      "step": 4,
+      "strategyOverride": null,
+      "qcFlag": "A 5.0s stretch with no detection. Check whether the animal was in a hole."
+    }
+  ]
+}

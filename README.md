@@ -3,9 +3,10 @@
 **[Live app](https://barnes-maze-lab.vercel.app/) &middot; [Demo video](https://www.youtube.com/watch?v=PMTxAgf9lAE)**
 
 A browser tool that turns Barnes maze videos into an analysis-ready spreadsheet, built for a
-researcher who wants results without opening a terminal. Track the animal, define the maze,
-review and correct, and export tidy data with publication figures. It runs fully client-side,
-so videos never leave the machine.
+researcher who wants results without opening a terminal. Drop in many trials or point at a
+folder, define the maze once, queue tracking, review and correct, and download a combined ZIP
+with a compiled PDF report and the figures. It runs fully client-side, so videos never leave
+the machine.
 
 ![Review workspace](public/images/screenshot-review.png)
 
@@ -44,15 +45,24 @@ Sample data ships with the repo under barnes-maze-data or you can Grab the three
 
 Five steps, left to right:
 
-1. **Load** &mdash; drop in an MP4, or a SLEAP / DeepLabCut CSV export (auto-detected).
+1. **Load** &mdash; drop videos, choose several files, or **Point at a folder** of trials.
+  A whole cohort comes in at once (sub-folders included). SLEAP / DeepLabCut CSV exports
+  are auto-detected the same way.
 2. **Maze** &mdash; drag a ring onto the platform, size it, mark the escape hole. Do it once,
-  then apply the geometry to the rest of the cohort.
-3. **Track** &mdash; find the animal frame by frame, or re-reason over an imported track.
+  then apply the geometry to the rest of the cohort. The second video is faster than the first.
+3. **Track** &mdash; run one trial, or **Track all remaining** to queue the rest. They run
+  one after another with progress you can stop; each finished trial is scored and kept.
 4. **Review** &mdash; the workspace: trajectory over the footage, a scrubable timeline,
   live-updating measures, the strategy classifier with its reasoning, and every threshold
-   on screen next to the numbers it drives.
-5. **Export** &mdash; the cohort learning curve, an analysis-ready Excel workbook, tidy CSVs,
-  trajectory and heatmap figures, and a reloadable project file.
+   on screen next to the numbers it drives. Figures include the path, a time-coloured path,
+  an occupancy heatmap, and a hole-visit raster.
+5. **Export** &mdash; **Download combined results** for one ZIP: tidy CSVs, SVG graphs, and a
+  compiled PDF report with those figures embedded. You can also take the PDF alone, the
+  learning curve, cohort comparison, strategy-by-day stacks, the Excel workbook, or individual
+  CSVs.
+
+A scored example of that pack for the three sample clips lives in
+[`outputs/sample-clips/`](outputs/sample-clips/).
 
 The design rule the whole thing follows: **uncertainty is never hidden.** When the animal
 can't be located, the frame is marked lost and drawn as a break in the path, never

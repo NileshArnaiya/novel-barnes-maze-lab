@@ -29,6 +29,12 @@ import EXPECTED from './expected-detection.json';
 const FIXTURES = join(__dirname, 'fixtures', 'frames');
 const available = existsSync(FIXTURES) && readdirSync(FIXTURES).some((f) => f.endsWith('.pgm'));
 
+describe('sample clips under evaluation', () => {
+  it('covers all three recordings, not only one of them', () => {
+    expect(Object.keys(EXPECTED.clips).sort()).toEqual(['test50', 'test51', 'test53']);
+  });
+});
+
 /**
  * Parse a binary PGM (P5).
  *

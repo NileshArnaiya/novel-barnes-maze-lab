@@ -2,11 +2,7 @@ import type { TrackPoint, VideoRecord } from './types';
 import { trackedFraction } from './measures';
 
 /**
- * Tracking quality assessment.
- *
- * The point of this file is triage. A student with 60 videos should not watch
- * all 60; they should be told which 8 need a human. Everything here exists to
- * produce that shortlist and to say, in plain language, why a video is on it.
+ * Flag trials that need a look. In-hole frames are not gaps.
  */
 
 export interface QualityReport {
@@ -14,7 +10,7 @@ export interface QualityReport {
   /** Longest continuous run of lost frames. */
   longestGapFrames: number;
   longestGapS: number;
-  /** Where the gaps are, so the UI can jump the user straight to them. */
+  /** Where the gaps are, so Review can jump to them. */
   gaps: { startFrame: number; endFrame: number; startT: number; endT: number }[];
   /** Null when nothing needs attention. */
   flag: string | null;
@@ -57,8 +53,7 @@ export function assessQuality(track: readonly TrackPoint[], fps: number): Qualit
   }
   const longestGapS = fps > 0 ? longestGapFrames / fps : 0;
 
-  // Thresholds chosen to be readable, not optimal. They are the kind of thing
-  // a lab will want to change, so they live here in one obvious place.
+  // Readable cutoffs, not a fitted model. Change them here if the lab wants.
   let flag: string | null = null;
   let priority = 0;
 
@@ -76,7 +71,7 @@ export function assessQuality(track: readonly TrackPoint[], fps: number): Qualit
   return { trackedFraction: frac, longestGapFrames, longestGapS, gaps, flag, priority };
 }
 
-/** Sort a cohort so the videos needing human attention come first. */
+/** Put flagged videos first. */
 export function triageOrder(videos: readonly VideoRecord[]): VideoRecord[] {
   return [...videos].sort((a, b) => {
     const pa = a.qcFlag ? 1 : 0;

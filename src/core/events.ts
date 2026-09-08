@@ -2,32 +2,17 @@ import { cmToPx, distance, nearestHole } from './geometry';
 import type { MazeEvent, MazeMap, ScoringParams, TrackPoint } from './types';
 
 /**
- * Turn a trajectory into scored behavioural events.
- *
- * Everything here is deterministic and pure: same track plus same parameters
- * always gives the same events. That is what makes the threshold-sensitivity
- * sweep possible, and it is what lets a reviewer reproduce a number six months
- * later from the project file alone.
+ * Trajectory → events. Same track + params always gives the same events.
  */
 
-/**
- * Which point on the animal to score against. If a nose estimate exists we use
- * it, because "did it poke its nose at the hole" is the actual behaviour. Body
- * centroid systematically overcounts errors: a mouse running past a hole has
- * its centroid pass within a few centimetres of it without ever inspecting it.
- */
+/** Nose if we have it; body overcounts pass-bys as investigations. */
 function scoringPoint(p: TrackPoint) {
   return p.nose ?? p.body;
 }
 
 /**
- * Detect hole investigations.
- *
- * An investigation is a run of consecutive frames where the scoring point stays
- * within `investigationRadiusCm` of one hole, lasting at least
- * `investigationMinDwellS`. Two visits to the same hole inside the refractory
- * window are merged, so a mouse that lingers and jitters is not scored as five
- * separate errors.
+ * Hole investigations: dwell inside investigationRadiusCm for at least
+ * investigationMinDwellS. Same hole inside the refractory window is one visit.
  */
 export function detectInvestigations(
   track: readonly TrackPoint[],
@@ -40,7 +25,7 @@ export function detectInvestigations(
   let runHoleId: string | null = null;
   let runStart = -1;
 
-  /** Close the current run and emit it if it is long enough. */
+  /** Emit the run if it was long enough. */
   const flush = (endIdx: number) => {
     if (runHoleId === null || runStart < 0) return;
     const first = track[runStart];
@@ -61,9 +46,7 @@ export function detectInvestigations(
       return;
     }
 
-    // Refractory merge: if this is the same hole as the previous event and it
-    // starts inside the refractory window, extend that event instead of adding
-    // a new one.
+    // Same hole, still inside refractory: extend the last event.
     const prev = events[events.length - 1];
     if (
       prev &&
@@ -95,8 +78,7 @@ export function detectInvestigations(
     if (!p) continue;
     const pt = scoringPoint(p);
 
-    // A frame where we cannot see the animal cannot support or refute an
-    // investigation, so it ends the current run rather than extending it.
+    // Untracked frames end the run; they cannot confirm a poke.
     if (p.state !== 'tracked' || !pt) {
       flush(i - 1);
       continue;
@@ -114,8 +96,7 @@ export function detectInvestigations(
       runHoleId = near.hole.id;
       runStart = i;
     } else if (runHoleId !== near.hole.id) {
-      // Moved straight from one hole to an adjacent one without leaving the
-      // radius. Close the first, open the second.
+      // Switched holes without leaving the radius. Close one, open the other.
       flush(i - 1);
       runHoleId = near.hole.id;
       runStart = i;
@@ -127,19 +108,9 @@ export function detectInvestigations(
 }
 
 /**
- * Detect the escape: the animal entering the escape box under the target hole.
- *
- * This is the ambiguity at the heart of the task. The animal vanishing from
- * view is either the behaviour we are trying to measure or a failure of the
- * measurement, and the pixels look identical. We resolve it with context:
- *
- *   - vanished, last seen at the target hole, stayed vanished  -> escape
- *   - vanished, last seen anywhere else                        -> tracking loss
- *
- * The `escapeConfirmFrames` requirement stops a one-frame dropout over the
- * target hole from being scored as a successful escape.
- *
- * On probe trials there is no escape box, so this returns nothing.
+ * Escape: vanished at the target and stayed gone for escapeConfirmFrames.
+ * Last seen far from the target → tracking loss, not an escape.
+ * Probe trials have no box, so this returns null.
  */
 export function detectEscape(
   track: readonly TrackPoint[],
@@ -159,8 +130,7 @@ export function detectEscape(
     if (!p) continue;
     if (p.state !== 'in-target-hole') continue;
 
-    // Require the disappearance to persist. A real escape does not come back
-    // two frames later; a dropout does.
+    // A real escape stays gone; a dropout comes back.
     let run = 0;
     let j = i;
     for (; j < track.length; j++) {
@@ -171,7 +141,7 @@ export function detectEscape(
     }
     if (run < params.escapeConfirmFrames) continue;
 
-    // Corroborate with the last place we actually saw the animal.
+    // Last visible position should be near the target.
     const lastSeen = lastTrackedBefore(track, i);
     if (lastSeen) {
       const pt = scoringPoint(lastSeen);
@@ -193,7 +163,7 @@ export function detectEscape(
   return null;
 }
 
-/** The most recent frame before `idx` where the animal was actually visible. */
+/** Last frame before `idx` where the animal was visible. */
 function lastTrackedBefore(
   track: readonly TrackPoint[],
   idx: number,
@@ -206,12 +176,7 @@ function lastTrackedBefore(
 }
 
 /**
- * First moment the animal reached the target hole, whether or not it entered.
- *
- * This is what primary latency is measured to. The edge case worth naming: an
- * animal can arrive at the target, hesitate, wander off and come back. We score
- * the first arrival, which is the standard convention and the one that reflects
- * memory rather than willingness to enter.
+ * First arrival at the target, even if it then left. That is primary latency.
  */
 export function detectReachedTarget(
   track: readonly TrackPoint[],
@@ -255,7 +220,7 @@ export function detectReachedTarget(
   return null;
 }
 
-/** Run all detectors and return events sorted by time. */
+/** All detectors, sorted by time. */
 export function detectAllEvents(
   track: readonly TrackPoint[],
   map: MazeMap,

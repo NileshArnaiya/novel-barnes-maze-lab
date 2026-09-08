@@ -1,9 +1,7 @@
 import type { ScoringParams } from './types';
 
 /**
- * Defaults. Every one of these is a judgement call, not a fact, which is why
- * they are all exposed in the UI. See docs/measures.md for the sources and the
- * disagreements in the literature.
+ * Defaults. All of these are judgements; they are in the UI. See docs/measures.md.
  */
 export const DEFAULT_PARAMS: ScoringParams = {
   investigationRadiusCm: 3.0,
@@ -16,7 +14,7 @@ export const DEFAULT_PARAMS: ScoringParams = {
   trialTimeoutS: 180,
 };
 
-/** Metadata for rendering the parameter panel. Keeps UI and domain in sync. */
+/** Labels and ranges for the parameter panel. */
 export interface ParamSpec {
   key: keyof ScoringParams;
   label: string;
@@ -24,7 +22,7 @@ export interface ParamSpec {
   min: number;
   max: number;
   step: number;
-  /** Shown under the control. Explains what moving it actually changes. */
+  /** Shown under the slider. */
   help: string;
 }
 

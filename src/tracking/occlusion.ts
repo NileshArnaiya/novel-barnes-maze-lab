@@ -3,22 +3,10 @@ import type { MazeMap, Point, TrackPoint, TrackState } from '../core/types';
 import type { Blob } from './blob';
 
 /**
- * Deciding what a disappearance means.
+ * What a missing blob means: hole, target hole, or lost.
  *
- * When the blob detector returns nothing, three very different things may have
- * happened, and they are indistinguishable from the pixels of that one frame:
- *
- *   1. the animal went down a hole (a behaviour we want to measure)
- *   2. the animal went down the target hole (the escape, the key event)
- *   3. tracking failed (a measurement problem)
- *
- * Getting this wrong is the most damaging error the tool can make, because it
- * is silent. Interpolating case 3 produces a smooth, confident, wrong
- * trajectory; misreading case 1 as case 2 produces a wrong escape latency for
- * an animal that never escaped.
- *
- * We resolve it with the only evidence available: where the animal was
- * immediately before it vanished, and whether it stayed vanished.
+ * One frame cannot tell. We use last seen position and how long it stayed gone.
+ * Interpolating a loss invents a path; calling the wrong hole invents an escape.
  */
 
 export interface OcclusionConfig {
@@ -35,13 +23,7 @@ interface Pending {
 }
 
 /**
- * Resolve every disappearance in a track.
- *
- * Runs as a second pass over the raw detections, because the decision needs to
- * look forward: whether an absence is an escape depends on how long it lasts,
- * which the frame itself cannot tell you. A single forward pass that guessed
- * immediately would have to revise itself, and revisions are exactly where
- * silent errors hide.
+ * Second pass over detections. Needs to look forward: an escape is "stayed gone".
  */
 export function resolveOcclusions(
   raw: readonly (Blob | null)[],
@@ -53,16 +35,14 @@ export function resolveOcclusions(
   let pending: Pending | null = null;
 
   const commit = (p: Pending) => {
-    // Which hole was the animal closest to when we last saw it?
+    // Closest hole to last sighting.
     let nearest: { isTarget: boolean; d: number } | null = null;
     for (const hole of map.holes) {
       const d = distance(hole.center, p.lastSeen);
       if (nearest === null || d < nearest.d) nearest = { isTarget: hole.isTarget, d };
     }
 
-    // Not near any hole, or not absent for long enough. This is a genuine
-    // tracking failure and we say so. The frames stay `lost`, no position is
-    // invented, and quality.ts will surface it for human review.
+    // Not near a hole, or not gone long enough → lost. No invented position.
     if (!nearest || nearest.d > config.holeProximityPx) return;
     if (p.frames < config.confirmFrames) return;
 
@@ -83,15 +63,13 @@ export function resolveOcclusions(
       continue;
     }
 
-    // Absent. Start or extend a pending disappearance.
+    // Absent. Start or extend a pending gap.
     if (pending) {
       pending.frames++;
     } else if (lastSeen) {
       pending = { startIndex: i, lastSeen, frames: 1 };
     }
-    // If we have never seen the animal, there is no evidence to reason from,
-    // so the frame stays `lost`. This is the correct answer for a trial that
-    // starts with the animal still under the start cylinder.
+    // Never seen the animal yet (still under the start cylinder) → lost.
   }
 
   if (pending) commit(pending);
@@ -99,14 +77,8 @@ export function resolveOcclusions(
 }
 
 /**
- * Decide which end of the animal is the nose.
- *
- * The principal axis gives two candidate endpoints but no sense of which is
- * front. Rodents move nose-first, so the endpoint that is further along the
- * direction of travel is the nose. When the animal is nearly stationary there
- * is no direction of travel and therefore no evidence, so we return null rather
- * than guessing, and every measure that needs a nose falls back to the centroid
- * and says so.
+ * Nose = the endpoint further along the direction of travel.
+ * Stationary → null, then measures fall back to the centroid.
  */
 export function resolveNose(
   blob: Blob,
@@ -126,13 +98,7 @@ export function resolveNose(
 }
 
 /**
- * Median filter over the trajectory.
- *
- * Median rather than mean because a single bad detection is an outlier, and a
- * mean would drag the whole neighbourhood toward it. Lost frames are not
- * smoothed and do not contribute: a filter that averaged across a gap would
- * quietly manufacture a position inside it, which is precisely the failure this
- * whole module exists to prevent.
+ * Median filter. Lost frames are skipped and never filled in.
  */
 export function smoothTrack(track: TrackPoint[], windowFrames: number): TrackPoint[] {
   if (windowFrames <= 1) return track;

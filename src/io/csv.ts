@@ -1,19 +1,9 @@
+import { cohorts, learningCurve, strategyByDay, type CurveMeasure } from '../core/aggregate';
 import type { MazeEvent, Project, TrialSummary, VideoRecord } from '../core/types';
 
 /**
- * Export.
- *
- * Two rules drive this file.
- *
- * First, tidy data: one row per observation, one column per variable, no merged
- * cells, no headers spanning columns. The output should drop into R or pandas
- * without cleaning, because the alternative is a scientist hand-editing the
- * spreadsheet, which is where transcription errors come from.
- *
- * Second, every export states how it was produced. Six months from now someone
- * will ask why two cohorts disagree, and the answer is often a threshold. The
- * parameters are written into the file, so the file can answer that question by
- * itself.
+ * Tidy CSVs. Blank latency is never reached, not zero — see reached_target.
+ * Parameters go in the file so the thresholds travel with the data.
  */
 
 /** Escape a value for CSV. Quotes anything containing a delimiter or quote. */
@@ -31,12 +21,8 @@ function rows(header: readonly string[], body: readonly unknown[][]): string {
 }
 
 /**
- * One row per trial. This is the file that goes into the statistics.
- *
- * Note the explicit `reached_target` and `escaped` boolean columns beside the
- * latency columns. An empty latency cell is ambiguous, and a downstream
- * analysis that reads a blank as zero would report a spectacularly fast animal.
- * The booleans make censoring unambiguous.
+ * One row per trial. `reached_target` / `escaped` sit next to latency so a
+ * blank cell cannot be read as zero.
  */
 export function trialSummaryCsv(project: Project): string {
   const header = [
@@ -63,6 +49,9 @@ export function trialSummaryCsv(project: Project): string {
     'thigmotaxis_fraction',
     'tracked_fraction',
     'human_edited_frames',
+    'video_duration_s',
+    'frame_rate_fps',
+    'qc_flag',
   ];
 
   const body = project.videos
@@ -93,19 +82,16 @@ export function trialSummaryCsv(project: Project): string {
         s.strategy.features.thigmotaxisFraction.toFixed(3),
         s.trackedFraction.toFixed(3),
         s.humanEditedFrames,
+        v.durationS.toFixed(2),
+        v.fps.toFixed(3),
+        v.qcFlag ?? '',
       ];
     });
 
   return rows(header, body);
 }
 
-/**
- * One row per scored event.
- *
- * This is what makes a disputed number checkable. If a reviewer doubts an error
- * count, this file tells them exactly which holes were scored and at which
- * frame, and those frame numbers are clickable in the app.
- */
+/** One row per event, with frame numbers that match Review. */
 export function eventsCsv(project: Project): string {
   const header = [
     'video_id',
@@ -143,12 +129,7 @@ export function eventsCsv(project: Project): string {
   return rows(header, body);
 }
 
-/**
- * The parameter record. Written alongside every export.
- *
- * This file is what makes an analysis reproducible without the original
- * operator being available to ask.
- */
+/** Thresholds and tool version, so the file can answer "what settings were these?" */
 export function parametersCsv(project: Project): string {
   const header = ['parameter', 'value'];
   const body: unknown[][] = [
@@ -159,6 +140,46 @@ export function parametersCsv(project: Project): string {
     ['movement_floor_cm_s', 1.0],
   ];
   for (const [k, v] of Object.entries(project.params)) body.push([k, v]);
+  for (const vid of project.videos) {
+    const target = vid.map?.holes.find((h) => h.isTarget);
+    if (target) body.push([`target_hole_index:${vid.fileName}`, target.index]);
+  }
+  return rows(header, body);
+}
+
+export function learningCurveCsv(project: Project): string {
+  const measures: CurveMeasure[] = [
+    'primaryLatencyS',
+    'totalLatencyS',
+    'primaryErrors',
+    'totalErrors',
+    'pathLengthCm',
+  ];
+  const header = ['cohort', 'day', 'measure', 'mean', 'sem', 'n', 'n_censored'];
+  const body: unknown[][] = [];
+  for (const measure of measures) {
+    for (const p of learningCurve(project, measure)) {
+      body.push([p.cohort, p.day, measure, p.mean.toFixed(4), p.sem.toFixed(4), p.n, p.nCensored]);
+    }
+  }
+  return rows(header, body);
+}
+
+export function strategyByDayCsv(project: Project): string {
+  const header = ['cohort', 'day', 'spatial', 'serial', 'random', 'undetermined'];
+  const body: unknown[][] = [];
+  for (const cohort of cohorts(project)) {
+    for (const row of strategyByDay(project, cohort)) {
+      body.push([
+        cohort,
+        row.day,
+        row.counts.spatial,
+        row.counts.serial,
+        row.counts.random,
+        row.counts.undetermined,
+      ]);
+    }
+  }
   return rows(header, body);
 }
 
@@ -170,18 +191,13 @@ export function downloadText(filename: string, text: string): void {
   a.href = url;
   a.download = filename;
   a.click();
-  // Revoking immediately can cancel the download in some browsers, so give the
-  // click a moment to be handled first.
+  // Immediate revoke can cancel the download in some browsers.
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /**
- * The reloadable project file.
- *
- * Tracks are dropped for videos the user has not corrected, because a full
- * cohort of raw tracks is tens of megabytes and can be recomputed from the
- * video. Corrected tracks are always kept: those represent human work that
- * cannot be regenerated.
+ * Reloadable project. Uncorrected tracks are dropped (they can be recomputed).
+ * Human-edited tracks are kept.
  */
 export function projectJson(project: Project): string {
   const slim: Project = {
