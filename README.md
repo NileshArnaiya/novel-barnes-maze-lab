@@ -7,7 +7,11 @@ researcher who wants results without opening a terminal. Track the animal, defin
 review and correct, and export tidy data with publication figures. It runs fully client-side,
 so videos never leave the machine.
 
-Review workspaceTrajectory figure and the scoring thresholdsReview workspace on a scored trial
+![Review workspace](public/images/screenshot-review.png)
+
+![Trajectory figure and the scoring thresholds](public/images/screenshot-figures.png)
+
+![Review workspace on a scored trial](public/images/screenshot-review-full.png)
 
 ## Quick start
 
