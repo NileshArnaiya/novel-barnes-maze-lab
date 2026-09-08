@@ -1,6 +1,6 @@
 # Barnes maze scorer
 
-**[Live app](https://barnes-maze-lab.vercel.app/) &middot; [Demo video](https://www.youtube.com/watch?v=PMTxAgf9lAE)**
+**[Live app](https://barnes-maze-lab.vercel.app/) &middot; [Demo video](https://youtu.be/yKBy_i1dE88)**
 
 A browser tool that turns Barnes maze videos into an analysis-ready spreadsheet, built for a
 researcher who wants results without opening a terminal. Drop in many trials or point at a
