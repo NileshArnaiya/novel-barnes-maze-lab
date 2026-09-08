@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Browser-based scoring tool for Barnes maze behavioural videos. Runs entirely client-side.",
+  "description": "Browser-based scoring tool for Barnes maze behavioural videos.",
   "license": "MIT",
   "scripts": {
     "dev": "vite",

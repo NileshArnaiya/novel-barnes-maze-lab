@@ -2,9 +2,6 @@ node_modules/
 dist/
 .DS_Store
 *.local
-*.mp4
-*.avi
-*.mov
 
 # Evaluation fixtures are derived from the sample videos, which we do not
 # redistribute. Regenerate with ./scripts/make-fixtures.sh
