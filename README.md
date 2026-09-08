@@ -7,11 +7,7 @@ researcher who wants results without opening a terminal. Track the animal, defin
 review and correct, and export tidy data with publication figures. It runs fully client-side,
 so videos never leave the machine.
 
-![Review workspace](./public/images/screenshot-review.png)
-
-![Trajectory figure and the scoring thresholds](./public/images/screenshot-figures.png)
-
-![Review workspace on a scored trial](./public/images/screenshot-review-full.png)
+Review workspaceTrajectory figure and the scoring thresholdsReview workspace on a scored trial
 
 ## Quick start
 
@@ -30,16 +26,14 @@ Sample data ships with the repo under barnes-maze-data or you can Grab the three
 ## Scripts
 
 
-| Command          | What it does                                               |
-| ---------------- | ---------------------------------------------------------- |
-| `pnpm dev`       | Start the dev server with hot reload                       |
-| `pnpm build`     | Type-check and build a static `dist/`                      |
-| `pnpm preview`   | Serve the built `dist/` locally                            |
-| `pnpm test`      | Golden tests on synthetic trajectories                     |
-| `pnpm test:eval` | Detection and tracking-accuracy checks on the sample clips |
-| `pnpm typecheck` | `tsc --noEmit`                                             |
-
-
+| Command          | What it does                                             |
+| ---------------- | -------------------------------------------------------- |
+| `pnpm dev`       | Start the dev server with hot reload                     |
+| `pnpm build`     | Type-check and build a static `dist/`                    |
+| `pnpm preview`   | Serve the built `dist/` locally                          |
+| `pnpm test`      | Golden tests on synthetic trajectories                   |
+| `pnpm test:eval` | Detection and tracking-accuracy checks on labelled clips |
+| `pnpm typecheck` | `tsc --noEmit`                                           |
 
 
 ## How it works
@@ -69,9 +63,7 @@ needs a download. The classical tracker can be explained in two minutes and fail
 for hard footage the SLEAP/DeepLabCut import path takes over.
 - **A backend or desktop build.** I was in 2 minds, because a backend could help in many ways to use APIs and databases to store locally and also run models locally or hosted which would help but eventually a web interface is the most easiest way to get a researcher to try the tool out. 
 - **Native** `.slp` **/** `.h5` **parsing.** Both are HDF5, a heavy browser dependency. Labs share the  
-CSV exports, so did not make sense to do this, might add only for convenience in the future. 
-
-
+CSV exports, so did not make sense to do this, might add only for convenience in the future.
 
 ## Tech
 
@@ -92,16 +84,62 @@ src/
   ui/         wizard shell, steps, canvas, panels
 ```
 
-
-
 ## Testing
 
 `pnpm test` checks the measures against synthetic trajectories with answers worked out by
-hand. `pnpm test:eval` runs the real detectors on frames from the sample clips and, if you've
-hand-labelled a few frames with `scripts/label-frames.mjs`, checks the tracked point lands on
-the animal. Both eval layers skip cleanly and print setup instructions when the sample data
-isn't present, so CI stays green without it. See `[docs/validation.md](docs/validation.md)`
-for what tracking accuracy was and wasn't validated against.
+hand. `pnpm test:eval` is the pixel-level check: maze detection on sampled frames, and
+whether the tracked point lands on the animal in frames you labelled by hand. Either layer
+skips and prints setup instructions when the data is missing, so CI stays green without it.
+See [VALIDATION.md](VALIDATION.md) for what a green result does and does not mean.
+
+### Ground truth and evals
+
+ffmpeg must be on your `PATH`. Sample clips live in `barnes-maze-data/` (`test50.mp4`,
+`test51.mp4`, `test53.mp4`). The same steps work on your own MP4s.
+
+**1. Maze-detection fixtures** (platform and hole ring). Defaults to `barnes-maze-data/`:
+
+```bash
+./scripts/make-fixtures.sh
+# or
+./scripts/make-fixtures.sh /path/to/your/videos
+```
+
+This writes greyscale frames to `test/fixtures/frames/`. That folder is gitignored. The
+detection half of `pnpm test:eval` currently looks for clips named `test50`, `test51`, and
+`test53`.
+
+**2. Hand-label the animal.** One video at a time:
+
+```bash
+node scripts/label-frames.mjs barnes-maze-data/test53.mp4
+```
+
+For your own footage, pass that file instead:
+
+```bash
+node scripts/label-frames.mjs /path/to/your-trial.mp4
+```
+
+The script prints a local URL. Open it, **click the mouse** in each frame (or skip if the
+animal is not visible). Labels save as you go. When the page says done, close the tab and
+stop the script (`Ctrl-C`). Repeat for each clip.
+
+Clicks are written to `test/fixtures/labels/<name>.labels.json`, with matching PNGs and PGMs
+under `test/fixtures/labels/<name>/`. Eight frames are sampled across the clip. That is a
+spot check, not a full labelled trial.
+
+**3. Run the eval:**
+
+```bash
+pnpm test:eval
+```
+
+That runs maze detection against the fixtures, then tracking accuracy against every
+`*.labels.json` it finds. The tracker must land within 6 cm of your click (about a body
+length: you click somewhere on the animal, the detector returns the centroid). On your own
+clips, name the file whatever you like; the accuracy tests pick up the label file from the
+stem of the video name.
 
 ## Privacy and cost
 
@@ -121,13 +159,11 @@ zoom, and `prefers-reduced-motion` honoured.
 
 - `[docs/measures.md](docs/measures.md)` &mdash; every measure, its source, and where the
 literature disagrees.
-- `[docs/validation.md](docs/validation.md)` &mdash; how tracking accuracy was checked.
+- [VALIDATION.md](VALIDATION.md) &mdash; how tracking accuracy was checked.
 - `[ARCHITECTURE.md](ARCHITECTURE.md)` &mdash; data flow in one page.
 - `[CONTRIBUTING.md](CONTRIBUTING.md)` &mdash; local setup and the rules for a change.
 - `[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)` &mdash; real defects vs excluded scope.
 - `[AI_NOTES.md](AI_NOTES.md)` &mdash; how AI tooling was used and where it was wrong.
-
-
 
 ## Claude skill
 
@@ -141,8 +177,6 @@ invites, so it writes correct analysis code against the exports. A copy also shi
 /plugin marketplace add NileshArnaiya/barnes-maze-claude-skill
 /plugin install analyzing-barnes-maze@barnes-maze-skills
 ```
-
-
 
 ## License
 
