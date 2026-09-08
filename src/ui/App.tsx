@@ -3,6 +3,7 @@ import { hasSeenWalkthrough } from '../io/db';
 import { useStore } from '../state/store';
 import { CohortRail } from './components/CohortRail';
 import { ShortcutsButton, useKeyboardShortcuts } from './components/Shortcuts';
+import { TrialChatButton } from './components/TrialChat';
 import { StatusBanner } from './components/StatusBanner';
 import { Walkthrough } from './components/Walkthrough';
 import { Export } from './steps/Export';
@@ -153,6 +154,7 @@ export function App() {
       </div>
 
       {showWalkthrough ? <Walkthrough onClose={() => setShowWalkthrough(false)} /> : null}
+      <TrialChatButton />
       <ShortcutsButton />
     </div>
   );
